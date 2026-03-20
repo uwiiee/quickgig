@@ -1,3 +1,5 @@
+import { API_BASE } from './config';
+
 import React, { useState } from "react";
 import { TextInput } from "react-native";
 import { Text, View, TouchableOpacity } from "react-native";
@@ -10,17 +12,44 @@ export default function SignupScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const handleSignup = async () => {
+    if (password !== confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+    if (!email.includes('@')) {
+      alert("Please enter a valid email");
+      return;
+    }
+    try {
+      const response = await fetch(`${API_BASE}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await response.json();
+      console.log("Server response", data)
+      if (response.ok) {
+        router.replace('/');
+      } else {
+        alert(data.error || 'Signup failed');
+      }
+    } catch (error) {
+      alert('Network error: ' + ((error as Error)?.message || 'Unknown error'));
+    }
+  };
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.signupScreenContainer}>
         <View style={styles.signupFormContainer}>
-          <Text style={styles.formHeading}>QuickGig</Text>
+          <Text style={styles.formHeading}>Rakèt</Text>
 
           <TextInput
             style={styles.input}
-            placeholderTextColor={'white'}
+            placeholderTextColor={'grey'}
             value={name}
             onChangeText={setName}
             placeholder="Full Name"
@@ -28,7 +57,7 @@ export default function SignupScreen() {
 
           <TextInput
             style={styles.input}
-            placeholderTextColor={'white'}
+            placeholderTextColor={'grey'}
             value={email}
             onChangeText={setEmail}
             placeholder="Email"
@@ -37,7 +66,7 @@ export default function SignupScreen() {
 
           <TextInput
             style={styles.input}
-            placeholderTextColor={'white'}
+            placeholderTextColor={'grey'}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={true}
@@ -46,14 +75,14 @@ export default function SignupScreen() {
 
           <TextInput
             style={styles.input}
-            placeholderTextColor={'white'}
+            placeholderTextColor={'grey'}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry={true}
             placeholder="Confirm Password"
           />
 
-          <TouchableOpacity style={styles.signupBtn}>
+          <TouchableOpacity style={styles.signupBtn} onPress={handleSignup}>
             <Text style={styles.btnTxt}>Sign Up</Text>
           </TouchableOpacity>
 

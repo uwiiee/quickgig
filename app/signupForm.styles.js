@@ -11,14 +11,14 @@ export const styles = StyleSheet.create({
     }),
    
     justifyContent: "center",
-    backgroundColor: 'skyblue',
+    backgroundColor: '#d1d1d1',
 
   },
 
   formHeading: {
     fontSize: 50,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#859581',
     padding: 10,
     borderRadius: 10,
     marginBottom: 20,
@@ -28,7 +28,7 @@ export const styles = StyleSheet.create({
 
   signupFormContainer: {
     flex: 1,
-    backgroundColor: 'skyblue',
+    backgroundColor: '#ffffff',
     justifyContent: "center",
     alignItems: 'center',
     paddingTop: 200,
@@ -40,16 +40,17 @@ export const styles = StyleSheet.create({
   input: {
     height: 50,
     width: '80%',
-    backgroundColor: '#2d6784',
+    backgroundColor: '#d8d8d8',
     padding: 10,
     marginBottom: 20,
     borderRadius: 5,
     top: -120,
     paddingLeft: 15,
+    color: 'black',
   },
 
   signupBtn:{
-    backgroundColor: 'white',
+    backgroundColor: '#859581',
     padding: 15,
     borderRadius: 5,
     width: '80%',
@@ -58,7 +59,7 @@ export const styles = StyleSheet.create({
   },
 
   btnTxt:{
-    color: 'skyblue',
+    color: '#ffffff',
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -66,7 +67,7 @@ export const styles = StyleSheet.create({
   alreadyhaveAcc: {
     marginTop: 20,
     top: -5,
-    color: '#2d6784',
+    color: '#869083',
     
   },
 
@@ -78,7 +79,7 @@ export const styles = StyleSheet.create({
   },
 
   login:{
-    color: '#2d6784',
+    color: '#859581',
     fontWeight: 'bold',
     marginLeft: 3,
     top: 4,

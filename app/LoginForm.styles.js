@@ -11,14 +11,14 @@ export const styles = StyleSheet.create({
     }),
     
     justifyContent: "center",
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
 
   },
 
   formHeading: {
     fontSize: 50,
     fontWeight: 'bold',
-    color: 'skyblue',
+    color: '#859581',
     padding: 10,
     borderRadius: 10,
     marginBottom: 20,
@@ -28,7 +28,7 @@ export const styles = StyleSheet.create({
 
   lgnFormContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     justifyContent: "center",
     alignItems: 'center',
     paddingTop: 200,
@@ -42,7 +42,7 @@ export const styles = StyleSheet.create({
   input: {
     height: 50,
     width: '80%',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#d8d8d8',
     padding: 10,
     marginBottom: 20,
     borderRadius: 5,
@@ -51,7 +51,7 @@ export const styles = StyleSheet.create({
   },
 
   loginBtn:{
-    backgroundColor: 'skyblue',
+    backgroundColor: '#859581',
     padding: 15,
     borderRadius: 5,
     width: '80%',
@@ -68,6 +68,7 @@ export const styles = StyleSheet.create({
   dontHaveAcc: {
     marginTop: 20,
     top: -5,
+    color: '#869083',
     
   },
 
@@ -79,7 +80,7 @@ export const styles = StyleSheet.create({
   },
 
   register:{
-    color: 'black',
+    color: '#859581',
     fontWeight: 'bold',
     marginLeft: 3,
     top: 4,
@@ -118,4 +119,5 @@ export const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
+
 });
