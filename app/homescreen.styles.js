@@ -1,6 +1,6 @@
 import {StyleSheet, Platform, StatusBar,} from 'react-native';
-
-
+ 
+ 
 export const styles = StyleSheet.create({
     homeScreenContainer: {
     flex: 1,
@@ -11,20 +11,20 @@ export const styles = StyleSheet.create({
     }),
     backgroundColor: '#d1d1d1',
     },
-
+ 
     homeScreenHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         height: '7%',
         paddingHorizontal: 10,
-        borderBottomColor: 'rgba(97, 93, 93, 0.3))',
+        borderBottomColor: 'rgba(97, 93, 93, 0.3)',
         borderBottomWidth: 1,
     },
-
+ 
     headerNav: {
-
+ 
     },
-
+ 
     headerRight: {
         justifyContent: 'space-between',
         flexDirection: 'row',
@@ -32,7 +32,7 @@ export const styles = StyleSheet.create({
         marginLeft: 'auto',
         gap: 15,
     },
-
+ 
     bottomNav: {
         flexDirection: 'row',
         justifyContent: 'space-around',
@@ -46,26 +46,26 @@ export const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 0,
     },
-
+ 
     bottomNavIcon: {
         paddingTop: 7,
         color: '#000000',
         fontSize: 30,
     },
-
+ 
     headerMenu: {
        fontSize: 40,
        fontWeight: 'bold',
        color: '#000000',
        alignSelf: 'center',
     },
-
+ 
     headerAdd: {
         fontSize: 30,
         fontWeight: 'bold',
         color: '#000000',
     },
-
+ 
     headerNotifications: {
         fontSize: 30,
         fontWeight: 'bold',
@@ -92,11 +92,11 @@ export const styles = StyleSheet.create({
         fontSize: 20,
         padding: 20,
     },
-
+ 
     homeScreenContentText: {
         fontSize: 16,
         color: '#000000',
     }
-
-
+ 
+ 
 });

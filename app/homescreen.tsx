@@ -23,6 +23,7 @@ export default function HomeScreen() {
                 <View style={styles.headerRight}>
                     <Ionicons style={[styles.headerAdd, styles.headerNav]} name="add-circle-outline" size={35} color="black" />
                     <Ionicons style={[styles.headerNotifications, styles.headerNav]} name="notifications-outline" size={35} color="black" />
+                    
                     <Ionicons style={[styles.headerChatBubble, styles.headerNav]} name="chatbubble-ellipses-outline" size={35} color="black" />
                 </View>
             </View>
@@ -30,7 +31,9 @@ export default function HomeScreen() {
             <View style={styles.bottomNav}>
                 
                 <Ionicons style={styles.bottomNavIcon} name="home-outline" size={35} color="black" />
-                <Ionicons style={styles.bottomNavIcon} name="search-outline" size={35} color="black" />
+                <TouchableOpacity onPress={() => router.push('/search')}>
+                    <Ionicons style={styles.bottomNavIcon} name="search-outline" size={35} color="black"/>
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => router.push('/profile')}>
                     <Ionicons style={styles.bottomNavIcon} name="person-outline" size={35} color="black" />
                 </TouchableOpacity>

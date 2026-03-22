@@ -5,20 +5,29 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from "@expo/vector-icons";
 import { TextInput, Text, View, TouchableOpacity, Image, StatusBar, ScrollView, Modal } from "react-native";
 import { Stack, router } from "expo-router";
+import * as Location from 'expo-location';
 import { styles } from "./profile.styles";
 
 type User = {
         name: string;
         email: string;
         _id: string;
+        skills: string[];
+        availability: {
+            mon: string;
+            tue: string;
+            wed: string;
+            thu: string;
+            fri: string;
+            sat: string;
+            sun: string;
+  };
 };
 
 export default function Profile() {
   const [user, setUser] = useState<User | null>(null);
   const [reviews, setReviews] = useState([]);
-  const [showAllReviews, setShowAllReviews] = useState(false);
-
-  // ← add these here, with your other states
+  const [showAllReviews, setShowAllReviews] = useState(false);    
   const [monSchedule, setMonSchedule] = useState('-');
   const [tueSchedule, setTueSchedule] = useState('-');
   const [wedSchedule, setWedSchedule] = useState('-');
@@ -26,9 +35,14 @@ export default function Profile() {
   const [friSchedule, setFriSchedule] = useState('-');
   const [sat1Schedule, setSat1Schedule] = useState('-');
   const [sat2Schedule, setSat2Schedule] = useState('-');
-  const [activeDay, setActiveDay] = useState<number | null>(null); // ← add this
+  const [activeDay, setActiveDay] = useState<number | null>(null); 
+  const [skills, setSkills] = useState<string[]>([]);
+  const [newSkill, setNewSkill] = useState('');
+  const [showSkillInput, setShowSkillInput] = useState(false);
+  const [location, setLocation] = useState('');
+  const [showLocationInput, setShowLocationInput] = useState(false);
   
-  const schedules = [ // ← add this too
+  const schedules = [ 
     [monSchedule, setMonSchedule],
     [tueSchedule, setTueSchedule],
     [wedSchedule, setWedSchedule],
@@ -36,44 +50,160 @@ export default function Profile() {
     [friSchedule, setFriSchedule],
     [sat1Schedule, setSat1Schedule],
     [sat2Schedule, setSat2Schedule],
-  ];
+    ];
 
-useEffect(() => {
-  const fetchUser = async () => {
+  
+  useEffect(() => {
+    const fetchUser = async () => {
+        const token = await AsyncStorage.getItem('token');
+        const response = await fetch(`${API_BASE}/auth/me`, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (data.error) {
+            await AsyncStorage.removeItem('token');
+            router.replace('/');
+            return;
+        }
+        setUser(data);
+        setSkills(data.skills || []);
+        setLocation(data.location || '');
+
+        if (data.availability) {
+            setMonSchedule(data.availability.mon || '-');
+            setTueSchedule(data.availability.tue || '-');
+            setWedSchedule(data.availability.wed || '-');
+            setThuSchedule(data.availability.thu || '-');
+            setFriSchedule(data.availability.fri || '-');
+            setSat1Schedule(data.availability.sat || '-');
+            setSat2Schedule(data.availability.sun || '-');
+        }
+    };
+
+    fetchUser();
+    }, []);
+
+    useEffect(() => {
+    const fetchReviews = async () => {
+        if (!user) return;
+        const response = await fetch(`${API_BASE}/auth/reviews/${user?._id}`);
+        const data = await response.json();
+        console.log('Reviews data:', data);
+        setReviews(data);
+    };
+    fetchReviews();
+    }, [user]);
+
+    const addSkill = async () => {
+        if (!newSkill.trim()) return;
+        const updated = [...skills, newSkill.trim()];
+        setSkills(updated);
+        setNewSkill('');
+        setShowSkillInput(false);
+        await saveSkills(updated);
+    };
+
+    const deleteSkill = async (skill: string) => {
+        const updated = skills.filter(s => s !== skill);
+        setSkills(updated);
+        await saveSkills(updated);
+    };
+
+    const saveSkills = async (updatedSkills: string[]) => {
+        const token = await AsyncStorage.getItem('token');
+        await fetch(`${API_BASE}/auth/skills`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ skills: updatedSkills }),
+        });
+    };
+
+    const saveAvailability = async (updated: string[]) => {
+        const token = await AsyncStorage.getItem('token');
+        await fetch(`${API_BASE}/auth/availability`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+            availability: {
+                mon: updated[0],
+                tue: updated[1],
+                wed: updated[2],
+                thu: updated[3],
+                fri: updated[4],
+                sat: updated[5],
+                sun: updated[6],
+                }
+            }),
+        });
+    };
+
+    const saveLocation = async (newLocation: string) => {
     const token = await AsyncStorage.getItem('token');
-    const response = await fetch(`${API_BASE}/auth/me`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
+    await fetch(`${API_BASE}/auth/location`, {
+        method: 'PUT',
+        headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ location: newLocation }),
     });
-    const data = await response.json();
-    if (data.error) {
-      await AsyncStorage.removeItem('token');
-      router.replace('/');
-      return;
+    };
+
+    const getGPSLocation = async () => {
+    try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+            alert('Location permission denied.');
+            return;
+        }
+        const loc = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = loc.coords;
+
+        const address = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (address.length > 0) {
+            const a = address[0];
+            const readable = `${a.street ? a.street + ', ' : ''}${a.city || a.district}, ${a.region}`;
+            setLocation(readable);
+            await saveLocation(readable);
+        }
+
+        const token = await AsyncStorage.getItem('token');
+        await fetch(`${API_BASE}/auth/coordinates`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ latitude, longitude }),
+        });
+
+        alert('Location updated!');
+    } catch (err) {
+        alert('Could not get location. Try again.');
     }
-    setUser(data);
-  };
-  fetchUser();
-}, []);
-
-useEffect(() => {
-  const fetchReviews = async () => {
-    if (!user) return;
-    const response = await fetch(`${API_BASE}/auth/reviews/${user?._id}`);
-    const data = await response.json();
-    console.log('Reviews data:', data);
-    setReviews(data);
-  };
-  fetchReviews();
-}, [user]);
-
+    };
+    
   return (
     
     <>
     
     <Stack.Screen options={{ headerShown: false }} />
     
+    
     <View style = {styles.profileScreenContainer}>
+        {/*<TouchableOpacity onPress={async () => {
+  await AsyncStorage.removeItem('token');
+  router.replace('/');
+}}>
+  <Text>Logout</Text>
+</TouchableOpacity>*/}
         <View style = {styles.profileHeader}>
             <Ionicons style={[styles.backButton, styles.headerNav]} name="arrow-back-outline" size={35} color="black" onPress={() => router.push('/homescreen')} /> 
 
@@ -85,10 +215,10 @@ useEffect(() => {
         </View> 
         {/* Modal */}
         <Modal
-        visible={activeDay !== null}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setActiveDay(null)}
+            visible={activeDay !== null}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setActiveDay(null)}
         >
         <TouchableOpacity
             style={styles.modalOverlay}
@@ -98,18 +228,24 @@ useEffect(() => {
                 <Text style={styles.modalTitle}>Select Schedule</Text>
                 {['-', 'AM', 'PM', 'Full'].map((option) => (
                     <TouchableOpacity
-                    key={option}
-                    style={styles.modalOption}
-                    onPress={() => {
-                        if (activeDay !== null) {
-                        (schedules[activeDay][1] as (val: string) => void)(option);
-                        setActiveDay(null);
-                        }
-                    }}
-                    >
-                    <Text style={styles.modalOptionText}>{option}</Text>
-                    </TouchableOpacity>
-                ))}
+                        key={option}
+                        style={styles.modalOption}
+                        onPress={() => {
+                                if (activeDay !== null) {
+                                    (schedules[activeDay][1] as (val: string) => void)(option);
+                                    setActiveDay(null);
+
+                                    const updated = schedules.map(([val]) => val as string);
+                                    updated[activeDay] = option;
+                                    saveAvailability(updated);
+                                }
+                            }}
+                        >
+                        <Text style={styles.modalOptionText}>{option}</Text>
+                     </TouchableOpacity>
+                    
+
+                 ))}
             </View>
         </TouchableOpacity>
         </Modal>
@@ -126,8 +262,6 @@ useEffect(() => {
                 <View style={styles.profilePicture} />
             </View>
             <View style={styles.lowerProfileContainer}>
-
-                {/* ← Name from MongoDB displayed here */}
                 <Text style={styles.profileName}>
                     {user ? user.name : 'Loading...'}
                 </Text>
@@ -136,56 +270,126 @@ useEffect(() => {
                     Student
                 </Text>
 
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                    <Ionicons name='location-outline' size={16} color='gray' />
-                    <Text style={styles.locationText}>Brgy. Bagtic, Silay City</Text>
+               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Ionicons name='location-outline' size={16} color='gray' />
+
+                {showLocationInput ? (
+                    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                    <TextInput
+                        style={{ backgroundColor: '#c4c4c4', borderRadius: 8, padding: 6, fontSize: 13, minWidth: 180 }}
+                        placeholder="Enter location..."
+                        placeholderTextColor="#888"
+                        value={location}
+                        onChangeText={setLocation}
+                    />
+                    <TouchableOpacity
+                        style={{ backgroundColor: '#859581', borderRadius: 8, padding: 6 }}
+                        onPress={async () => {
+                        await saveLocation(location);
+                        setShowLocationInput(false);
+                        }}
+                    >
+                        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>Save</Text>
+                    </TouchableOpacity>
+                    </View>
+                ) : (
+                    <TouchableOpacity onPress={() => setShowLocationInput(true)}>
+                    <Text style={styles.locationText}>
+                        {location || 'Add your location'}
+                    </Text>
+                    </TouchableOpacity>
+                )}
+
+                <TouchableOpacity onPress={getGPSLocation}>
+                    <Ionicons name="navigate-outline" size={16} color="#859581" />
+                </TouchableOpacity>
                 </View>
 
-                <View style = {styles.recordContainer}>
-                    <View style = {[styles.jobsDone, styles.records]}>
-                        <Text style = {[styles.jobsDone,styles.recordValue]}>29</Text>
-                        <Text style = {styles.recordLabel}>Jobs Done</Text>
+                <View style={{ width: '100%' }}>
+
+                    {/* AS WORKER */}
+                    <View style={styles.recordSection}>
+                        <Text style={styles.recordSectionLabel}>AS WORKER</Text>
+                        <View style={styles.recordContainer}>
+                        <View style={styles.records}>
+                            <Text style={styles.recordValue}>29</Text>
+                            <Text style={styles.recordLabel}>Jobs Done</Text>
+                        </View>
+                        <View style={styles.records}>
+                            <Text style={styles.recordValue}>4.7</Text>
+                            <Text style={styles.recordLabel}>Rating</Text>
+                        </View>
+                        <View style={styles.records}>
+                            <Text style={styles.recordValue}>100%</Text>
+                            <Text style={styles.recordLabel}>Job Completion</Text>
+                        </View>
+                        </View>
+                    </View>
+
+                    {/* Divider */}
+                    <View style={styles.recordDivider} />
+
+                    {/* AS CLIENT */}
+                    <View style={styles.recordSection}>
+                        <Text style={styles.recordSectionLabel}>AS CLIENT</Text>
+                        <View style={styles.recordContainer}>
+                        <View style={styles.records}>
+                            <Text style={styles.recordValue}>0</Text>
+                            <Text style={styles.recordLabel}>Jobs Posted</Text>
+                        </View>
+                        <View style={styles.records}>
+                            <Text style={styles.recordValue}>0</Text>
+                            <Text style={styles.recordLabel}>Rating</Text>
+                        </View>
+                        <View style={styles.records}>
+                            <Text style={styles.recordValue}>0%</Text>
+                            <Text style={[styles.recordLabel, {width: 110}]}>Transaction Completion</Text>
+                        </View>
+                        </View>
+                    </View>
 
                     </View>
 
-                    <View style = {styles.records}>
-                        <Text style = {[styles.ratings,styles.recordValue]}>4.7</Text>
-                        <Text style = {styles.recordLabel}>Rating</Text>
-
+                <View style={styles.skillsContainer}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10 }}>
+                        <Text style={[styles.skillsLabel, styles.labels]}>SKILLS</Text>
+                        <TouchableOpacity onPress={() => setShowSkillInput(!showSkillInput)}>
+                        <Ionicons name="add-circle-outline" size={24} color="#859581" />
+                        </TouchableOpacity>
                     </View>
 
-                    <View style = {styles.records}>
-                        <Text style = {[styles.completion,styles.recordValue]}>100%</Text>
-                        <Text style = {styles.recordLabel}>Completion</Text>
+                    {/* Add skill input */}
+                    {showSkillInput && (
+                        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+                        <TextInput
+                            style={{ flex: 1, backgroundColor: '#c4c4c4', borderRadius: 8, padding: 8, fontSize: 13 }}
+                            placeholder="Enter skill..."
+                            placeholderTextColor="#888"
+                            value={newSkill}
+                            onChangeText={setNewSkill}
+                        />
+                        <TouchableOpacity
+                            style={{ backgroundColor: '#859581', borderRadius: 8, padding: 8, justifyContent: 'center' }}
+                            onPress={addSkill}
+                        >
+                            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>Add</Text>
+                        </TouchableOpacity>
+                        </View>
+                    )}
 
-                    </View>
-                </View>
+                    <View style={styles.skillsWrapper}>
+                        {skills.map((skill, index) => (
+                        <View key={index} style={[styles.skillBadge, { flexDirection: 'row', alignItems: 'center', gap: 5 }]}>
+                            <Text style={styles.skillText}>{skill}</Text>
+                            <TouchableOpacity onPress={() => deleteSkill(skill)}>
+                            <Ionicons name="close-circle" size={16} color="#27500A" />
+                            </TouchableOpacity>
+                        </View>
+                        ))}
 
-                <View style = {styles.skillsContainer}>
-                    <Text style = {[styles.skillsLabel, styles.labels]}>SKILLS</Text>
-                    <View style = {styles.skillsWrapper}>
-                        <View style = {[styles.skillBadge]}>
-                            <Text style = {styles.skillText}>Gardening</Text>
-                        </View>
-                        <View style = {[styles.skillBadge]}>
-                            <Text style = {styles.skillText}>Housekeeping</Text>
-                        </View>
-                        <View style = {[styles.skillBadge]}>
-                            <Text style = {styles.skillText}>Cooking</Text>
-                        </View>
-                        <View style = {[styles.skillBadge]}>
-                            <Text style = {styles.skillText}>Drawing</Text>
-                        </View>
-                        <View style = {[styles.skillBadge]}>
-                            <Text style = {styles.skillText}>Electrician</Text>
-                        </View>
-                        <View style = {[styles.skillBadge]}>
-                            <Text style = {styles.skillText}>Delivery</Text>
-                        </View>
-                        <View style = {[styles.skillBadge]}>
-                            <Text style = {styles.skillText}>Technician</Text>
-                        </View>
-                        
+                        {skills.length === 0 && (
+                        <Text style={{ color: '#888', fontSize: 13 }}>No skills added yet</Text>
+                        )}
                     </View>
                 </View>
 

@@ -21,7 +21,7 @@ export default function Login() {
     const data = await response.json();
     if (response.ok) {
       // Handle success, e.g., store token
-      await AsyncStorage.setItem('token', data.token); // ← save token
+      await AsyncStorage.setItem('token', data.token); //save token
       router.push('/homescreen')
     } else {
       alert(data.error);
@@ -32,7 +32,7 @@ export default function Login() {
   const checkToken = async () => {
     const token = await AsyncStorage.getItem('token');
     if (token) {
-      router.replace('/profile'); // ← skip login if token exists
+      router.replace('/homescreen'); //skip login if token exists
     }
   };
   checkToken();

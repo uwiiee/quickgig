@@ -117,7 +117,7 @@ export const styles = StyleSheet.create({
     profileName: {
       textAlign: 'center',
       width: '100%',
-      fontFamily: 'Poppins_700Bold', // ← test with this
+      fontFamily: 'Poppins_700Bold',
       color: 'black',
       fontSize: 18, 
     },
@@ -132,34 +132,48 @@ export const styles = StyleSheet.create({
       justifyContent: 'space-around',
       alignItems: 'center',
       width: '100%',
-      height: '10%',
+      paddingVertical: 8,
     },
 
     records: {
       alignItems: 'center',
-      justifyContent: 'center',
-      width: '20%',
-      height: '100%',
+      justifyContent: 'flex-start',
+      width: '30%',
+      gap: 4, 
     },
 
     recordValue: {
       fontSize: 18,
       fontWeight: 'bold',
+      minHeight: 28, 
+      textAlign: 'center',
  
     },
 
     recordLabel: {
       fontSize: 10,
+      textAlign: 'center',
     },
 
-    jobsDone: {
-  
+    recordSection: {
+      width: '100%',
+      paddingHorizontal: 10,
+      paddingVertical: 8,
     },
-    ratings: {
-  
+
+    recordSectionLabel: {
+      fontSize: 11,
+      fontWeight: 'bold',
+      color: '#8b8b8b',
+      letterSpacing: 0.5,
+      marginBottom: 8,
     },
-    completion: {
-  
+
+    recordDivider: {
+      width: '90%',
+      height: 1,
+      backgroundColor: '#acacac',
+      alignSelf: 'center',
     },
 
     //LABELS
