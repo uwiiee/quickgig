@@ -1,10 +1,9 @@
-import { API_BASE } from './config';
+import { API_BASE } from "./config";
 
-import React, { useState } from "react";
-import { TextInput } from "react-native";
-import { Text, View, TouchableOpacity } from "react-native";
 import { Stack, router } from "expo-router";
-import { styles } from "./signupForm.styles";
+import React, { useState } from "react";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import { styles } from "../Styles/signupForm.styles";
 
 export default function SignupScreen() {
   const [name, setName] = useState("");
@@ -17,25 +16,25 @@ export default function SignupScreen() {
       alert("Passwords do not match");
       return;
     }
-    if (!email.includes('@')) {
+    if (!email.includes("@")) {
       alert("Please enter a valid email");
       return;
     }
     try {
       const response = await fetch(`${API_BASE}/auth/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
       const data = await response.json();
-      console.log("Server response", data)
+      console.log("Server response", data);
       if (response.ok) {
-        router.replace('/');
+        router.replace("/");
       } else {
-        alert(data.error || 'Signup failed');
+        alert(data.error || "Signup failed");
       }
     } catch (error) {
-      alert('Network error: ' + ((error as Error)?.message || 'Unknown error'));
+      alert("Network error: " + ((error as Error)?.message || "Unknown error"));
     }
   };
 
@@ -49,7 +48,7 @@ export default function SignupScreen() {
 
           <TextInput
             style={styles.input}
-            placeholderTextColor={'grey'}
+            placeholderTextColor={"grey"}
             value={name}
             onChangeText={setName}
             placeholder="Full Name"
@@ -57,7 +56,7 @@ export default function SignupScreen() {
 
           <TextInput
             style={styles.input}
-            placeholderTextColor={'grey'}
+            placeholderTextColor={"grey"}
             value={email}
             onChangeText={setEmail}
             placeholder="Email"
@@ -66,7 +65,7 @@ export default function SignupScreen() {
 
           <TextInput
             style={styles.input}
-            placeholderTextColor={'grey'}
+            placeholderTextColor={"grey"}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={true}
@@ -75,7 +74,7 @@ export default function SignupScreen() {
 
           <TextInput
             style={styles.input}
-            placeholderTextColor={'grey'}
+            placeholderTextColor={"grey"}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry={true}
@@ -88,7 +87,12 @@ export default function SignupScreen() {
 
           <View style={styles.alreadyhaveAccContainer}>
             <Text style={styles.alreadyhaveAcc}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => {console.log('Login pressed'); router.back() }}>
+            <TouchableOpacity
+              onPress={() => {
+                console.log("Login pressed");
+                router.back();
+              }}
+            >
               <Text style={styles.login}>Login</Text>
             </TouchableOpacity>
           </View>

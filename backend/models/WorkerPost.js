@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 
-const jobSchema = new mongoose.Schema({
-  title: { type: String, default: "" },
+const workerPostSchema = new mongoose.Schema({
   description: { type: String, required: true },
   skills: [{ type: String }],
   location: { type: String, required: true },
@@ -14,16 +13,10 @@ const jobSchema = new mongoose.Schema({
   ],
   pay: { type: Number, default: 0 },
   notes: { type: String, default: "" },
-
   status: {
     type: String,
     enum: ["open", "in_progress", "taken", "completed", "cancelled"],
     default: "open",
-  },
-  postedByRole: {
-    type: String,
-    enum: ["client", "worker"],
-    default: "client",
   },
   postedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -37,4 +30,4 @@ const jobSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model("Job", jobSchema);
+module.exports = mongoose.model("WorkerPost", workerPostSchema);
