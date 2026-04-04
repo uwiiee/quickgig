@@ -6,7 +6,7 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { styles } from "../Styles/profile.styles";
 import { API_BASE } from "./config";

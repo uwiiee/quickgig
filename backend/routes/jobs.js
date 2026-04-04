@@ -70,7 +70,6 @@ router.get("/suggested", verifyToken, async (req, res) => {
       "postedBy",
       "name location",
     );
-
     const scored = jobs.map((job) => {
       let score = 0;
 
@@ -247,6 +246,29 @@ router.get("/workers/search", verifyToken, async (req, res) => {
   }
 });
 
+// GET /api/feed?page=1 — paginated feed of all open jobs
+router.get("/feed", verifyToken, async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const skip = (page - 1) * limit;
+
+  try {
+    const total = await Job.countDocuments();
+    const jobs = await Job.find()
+      .populate("postedBy", "name location")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      posts: jobs.map((j) => ({ ...j.toObject(), postType: "job" })),
+      hasMore: skip + jobs.length < total,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/jobs — get all open jobs
 router.get("/", async (req, res) => {
   try {
@@ -254,6 +276,36 @@ router.get("/", async (req, res) => {
       .populate("postedBy", "name location")
       .sort({ createdAt: -1 });
     res.json(jobs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/jobs/:id/status — update job status
+router.put("/:id/status", verifyToken, async (req, res) => {
+  const { status } = req.body;
+  try {
+    const job = await Job.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true },
+    );
+    if (!job) return res.status(404).json({ error: "Job not found" });
+    res.json(job);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/jobs/:id — get single job
+router.get("/:id", async (req, res) => {
+  try {
+    const job = await Job.findById(req.params.id).populate(
+      "postedBy",
+      "name location",
+    );
+    if (!job) return res.status(404).json({ error: "Job not found" });
+    res.json(job);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -94,4 +94,15 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     color: "#000000",
   },
+
+  typeBadge: {
+    borderRadius: 20,
+    paddingVertical: 1,
+    paddingHorizontal: 6,
+  },
+
+  typeBadgeText: {
+    fontSize: 9,
+    fontWeight: "bold",
+  },
 });

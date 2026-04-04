@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Stack, router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import { Stack, router, useFocusEffect } from "expo-router";
+import React, { useRef, useState } from "react";
 import {
   RefreshControl,
   ScrollView,
@@ -29,12 +29,14 @@ export default function Search() {
   const [hasSearchedWorkerPosts, setHasSearchedWorkerPosts] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadHistory();
-    loadTrending();
-    loadSuggestedJobs();
-    loadSuggestedWorkerPosts();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      loadHistory();
+      loadTrending();
+      loadSuggestedJobs();
+      loadSuggestedWorkerPosts();
+    }, []),
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -64,7 +66,6 @@ export default function Search() {
     const updated = [text, ...history.filter((h) => h !== text)].slice(0, 10);
     setHistory(updated);
     await AsyncStorage.setItem("searchHistory", JSON.stringify(updated));
-
     await fetch(`${API_BASE}/auth/trending`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -105,7 +106,6 @@ export default function Search() {
     }
   };
 
-  // Refresh trending
   const loadTrending = async () => {
     try {
       const response = await fetch(`${API_BASE}/auth/trending`);
@@ -144,6 +144,40 @@ export default function Search() {
     return schedule.map((s) => `${s.date}, ${s.day} (${s.shift})`);
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "open":
+        return "Open";
+      case "taken":
+        return "Taken";
+      case "in_progress":
+        return "Taken";
+      case "completed":
+        return "Completed";
+      case "cancelled":
+        return "Cancelled";
+      default:
+        return "Open";
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "open":
+        return { bg: "#cae4c5", text: "#27500A" };
+      case "taken":
+        return { bg: "#f5e6c4", text: "#854F0B" };
+      case "in_progress":
+        return { bg: "#f5e6c4", text: "#854F0B" };
+      case "completed":
+        return { bg: "#d1d1d1", text: "#555" };
+      case "cancelled":
+        return { bg: "#f5c4c4", text: "#A32D2D" };
+      default:
+        return { bg: "#cae4c5", text: "#27500A" };
+    }
+  };
+
   const loadSuggestedWorkerPosts = async () => {
     try {
       const token = await AsyncStorage.getItem("token");
@@ -163,9 +197,7 @@ export default function Search() {
       const token = await AsyncStorage.getItem("token");
       const response = await fetch(
         `${API_BASE}/workerposts/search?query=${text}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       const data = await response.json();
       setWorkerPostResults(data);
@@ -175,10 +207,61 @@ export default function Search() {
       console.log("Worker post search error:", err);
     }
   };
+
+  const handleApply = async (job: any) => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const meResponse = await fetch(`${API_BASE}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const me = await meResponse.json();
+
+      const convResponse = await fetch(`${API_BASE}/conversations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          recipientId: job.postedBy?._id,
+          jobRef: job._id,
+        }),
+      });
+      const conversation = await convResponse.json();
+
+      await fetch(`${API_BASE}/conversations/${conversation._id}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          type: "application",
+          content: "",
+          applicationData: {
+            skills: me.skills,
+            jobsDone: me.jobsDone,
+            rating: me.workerRating,
+            jobCompletion: me.jobCompletion,
+            availability: me.availability,
+            jobDescription: job.description,
+            jobSkills: job.skills,
+            jobPay: job.pay,
+            jobLocation: job.location,
+            workerLocation: me.location,
+          },
+        }),
+      });
+
+      router.push(`/chat?conversationId=${conversation._id}`);
+    } catch (err) {
+      alert("Failed to send application");
+    }
+  };
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      {/* Header */}
       <View style={styles.container}>
         <View style={styles.header}>
           <Ionicons name="menu-outline" size={30} color="black" />
@@ -425,7 +508,7 @@ export default function Search() {
               </View>
             ))}
 
-          {/* JOBS TAB */}
+          {/* APPLY TAB */}
           {activeTab === "Apply" && (
             <View>
               <View style={styles.sectionHeader}>
@@ -444,131 +527,158 @@ export default function Search() {
                   suggestions!
                 </Text>
               ) : (
-                suggestedJobs.map((job, index) => (
-                  <View key={index} style={styles.jobCard}>
-                    {/* Poster row */}
-                    <TouchableOpacity
-                      style={styles.cardPosterRow}
-                      onPress={() =>
-                        router.push(`/viewProfile?id=${job.postedBy?._id}`)
-                      }
-                    >
-                      <View style={styles.resultAvatar}>
-                        <Text style={styles.resultAvatarText}>
-                          {job.postedBy?.name?.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                      <View style={styles.cardPosterInfo}>
-                        <Text style={styles.cardPosterName}>
-                          {job.postedBy?.name}
-                        </Text>
-                        <Text style={styles.cardPosterMeta}>
-                          <Ionicons
-                            name="location-outline"
-                            size={12}
-                            color="#8b8b8b"
-                          />
-                          {job.location} · {getTimeAgo(job.createdAt)} · Hiring
-                        </Text>
-                      </View>
-                      <View
-                        style={[
-                          styles.resultBadge,
-                          { backgroundColor: "#cae4c5" },
-                        ]}
+                suggestedJobs.map((job, index) => {
+                  const statusColor = getStatusColor(job.status || "open");
+                  const isTaken =
+                    job.status === "taken" || job.status === "in_progress";
+                  return (
+                    <View key={index} style={styles.jobCard}>
+                      {/* Poster row */}
+                      <TouchableOpacity
+                        style={styles.cardPosterRow}
+                        onPress={() =>
+                          router.push(`/viewProfile?id=${job.postedBy?._id}`)
+                        }
                       >
-                        <Text
-                          style={[styles.resultBadgeText, { color: "#27500A" }]}
-                        >
-                          {(job.status || "open").charAt(0).toUpperCase() +
-                            (job.status || "open").slice(1).replace("_", " ")}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    {/* Details */}
-                    <View style={styles.cardDetails}>
-                      <View style={styles.cardDetailRow}>
-                        <Text style={styles.cardDetailLabel}>Description</Text>
-                        <Text style={styles.cardDetailValue}>
-                          {job.description}
-                        </Text>
-                      </View>
-
-                      <View style={styles.cardSkillsRow}>
-                        <Text style={styles.cardDetailLabel}>Skills</Text>
-                        <View style={styles.cardSkillsWrapper}>
-                          {job.skills?.map((s: string, i: number) => (
-                            <View key={i} style={styles.jobSkillBadge}>
-                              <Text style={styles.jobSkillText}>{s}</Text>
-                            </View>
-                          ))}
-                        </View>
-                      </View>
-
-                      <View style={styles.cardSkillsRow}>
-                        <Text style={styles.cardDetailLabel}>When</Text>
-                        <View style={styles.cardWhenWrapper}>
-                          {formatSchedule(job.schedule).map(
-                            (line: string, i: number) => (
-                              <Text key={i} style={styles.cardWhenText}>
-                                {line}
-                              </Text>
-                            ),
-                          )}
-                        </View>
-                      </View>
-
-                      <View style={styles.cardDetailRow}>
-                        <Text style={styles.cardDetailLabel}>Pay</Text>
-                        <Text style={styles.cardDetailValueBold}>
-                          ₱{job.pay ?? "N/A"}
-                        </Text>
-                      </View>
-
-                      {job.notes ? (
-                        <View style={styles.cardDetailRow}>
-                          <Text style={styles.cardDetailLabel}>Notes</Text>
-                          <Text style={styles.cardDetailValue}>
-                            {job.notes}
+                        <View style={styles.resultAvatar}>
+                          <Text style={styles.resultAvatarText}>
+                            {job.postedBy?.name?.charAt(0).toUpperCase()}
                           </Text>
                         </View>
-                      ) : null}
-                    </View>
+                        <View style={styles.cardPosterInfo}>
+                          <Text style={styles.cardPosterName}>
+                            {job.postedBy?.name}
+                          </Text>
+                          <Text style={styles.cardPosterMeta}>
+                            <Ionicons
+                              name="location-outline"
+                              size={12}
+                              color="#8b8b8b"
+                            />
+                            {job.location} · {getTimeAgo(job.createdAt)} ·
+                            Hiring
+                          </Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.resultBadge,
+                            { backgroundColor: statusColor.bg },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.resultBadgeText,
+                              { color: statusColor.text },
+                            ]}
+                          >
+                            {getStatusLabel(job.status || "open")}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
 
-                    {/* Buttons */}
-                    <View style={styles.cardButtons}>
-                      <TouchableOpacity
-                        style={[styles.cardBtn, styles.cardBtnBorder]}
-                      >
-                        <Ionicons
-                          name="chatbubble-outline"
-                          size={16}
-                          color="#859581"
-                        />
-                        <Text style={styles.cardBtnText}>Negotiate</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.cardBtn, styles.cardBtnBorder]}
-                      >
-                        <Ionicons
-                          name="chatbox-outline"
-                          size={16}
-                          color="#859581"
-                        />
-                        <Text style={styles.cardBtnText}>Comment</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.cardBtn}>
-                        <Ionicons
-                          name="send-outline"
-                          size={16}
-                          color="#859581"
-                        />
-                        <Text style={styles.cardBtnText}>Apply</Text>
-                      </TouchableOpacity>
+                      {/* Details */}
+                      <View style={styles.cardDetails}>
+                        <View style={styles.cardDetailRow}>
+                          <Text style={styles.cardDetailLabel}>
+                            Description
+                          </Text>
+                          <Text style={styles.cardDetailValue}>
+                            {job.description}
+                          </Text>
+                        </View>
+                        <View style={styles.cardSkillsRow}>
+                          <Text style={styles.cardDetailLabel}>Skills</Text>
+                          <View style={styles.cardSkillsWrapper}>
+                            {job.skills?.map((s: string, i: number) => (
+                              <View key={i} style={styles.jobSkillBadge}>
+                                <Text style={styles.jobSkillText}>{s}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                        <View style={styles.cardSkillsRow}>
+                          <Text style={styles.cardDetailLabel}>When</Text>
+                          <View style={styles.cardWhenWrapper}>
+                            {formatSchedule(job.schedule).map(
+                              (line: string, i: number) => (
+                                <Text key={i} style={styles.cardWhenText}>
+                                  {line}
+                                </Text>
+                              ),
+                            )}
+                          </View>
+                        </View>
+                        <View style={styles.cardDetailRow}>
+                          <Text style={styles.cardDetailLabel}>Pay</Text>
+                          <Text style={styles.cardDetailValueBold}>
+                            ₱{job.pay ?? "N/A"}
+                          </Text>
+                        </View>
+                        {job.notes ? (
+                          <View style={styles.cardDetailRow}>
+                            <Text style={styles.cardDetailLabel}>Notes</Text>
+                            <Text style={styles.cardDetailValue}>
+                              {job.notes}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+
+                      {/* Buttons */}
+                      <View style={styles.cardButtons}>
+                        <TouchableOpacity
+                          disabled={isTaken}
+                          style={[styles.cardBtn, styles.cardBtnBorder]}
+                        >
+                          <Ionicons
+                            name="chatbubble-outline"
+                            size={16}
+                            color={isTaken ? "#aaa" : "#859581"}
+                          />
+                          <Text
+                            style={[
+                              styles.cardBtnText,
+                              { color: isTaken ? "#aaa" : "#859581" },
+                            ]}
+                          >
+                            Negotiate
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.cardBtn, styles.cardBtnBorder]}
+                        >
+                          <Ionicons
+                            name="chatbox-outline"
+                            size={16}
+                            color="#859581"
+                          />
+                          <Text style={styles.cardBtnText}>Comment</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          disabled={isTaken}
+                          style={styles.cardBtn}
+                          onPress={
+                            !isTaken ? () => handleApply(job) : undefined
+                          }
+                        >
+                          <Ionicons
+                            name="send-outline"
+                            size={16}
+                            color={isTaken ? "#aaa" : "#859581"}
+                          />
+                          <Text
+                            style={[
+                              styles.cardBtnText,
+                              { color: isTaken ? "#aaa" : "#859581" },
+                            ]}
+                          >
+                            Apply
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
-                ))
+                  );
+                })
               )}
             </View>
           )}
@@ -609,7 +719,11 @@ export default function Search() {
                           {post.postedBy?.name}
                         </Text>
                         <Text style={styles.cardPosterMeta}>
-                          <Ionicons name="location-outline"></Ionicons>
+                          <Ionicons
+                            name="location-outline"
+                            size={12}
+                            color="#8b8b8b"
+                          />
                           {post.location} · {getTimeAgo(post.createdAt)} ·
                           Applying
                         </Text>
@@ -617,11 +731,20 @@ export default function Search() {
                       <View
                         style={[
                           styles.statusBadge,
-                          { backgroundColor: "#cae4c5" },
+                          {
+                            backgroundColor:
+                              post.status === "open" ? "#cae4c5" : "#d1d1d1",
+                          },
                         ]}
                       >
                         <Text
-                          style={[styles.statusBadgeText, { color: "#27500A" }]}
+                          style={[
+                            styles.statusBadgeText,
+                            {
+                              color:
+                                post.status === "open" ? "#27500A" : "#555",
+                            },
+                          ]}
                         >
                           {post.status === "open" ? "Available" : "Acquired"}
                         </Text>

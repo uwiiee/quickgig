@@ -12,6 +12,7 @@ import {
 import { styles } from "../Styles/homescreen.styles";
 import { styles as cardStyles } from "../Styles/search.styles";
 import { API_BASE } from "./config";
+
 export default function HomeScreen() {
   const [posts, setPosts] = useState<any[]>([]);
   const [page, setPage] = useState(1);
@@ -33,7 +34,7 @@ export default function HomeScreen() {
   const loadFeed = async (pageNum: number) => {
     try {
       const token = await AsyncStorage.getItem("token");
-      const response = await fetch(`${API_BASE}/feed?page=${pageNum}`, {
+      const response = await fetch(`${API_BASE}/jobs/feed?page=${pageNum}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -76,22 +77,82 @@ export default function HomeScreen() {
 
   const getStatusLabel = (status: string, isJob: boolean) => {
     if (isJob) {
-      if (status === "open")
-        return { label: "Available", color: "#cae4c5", text: "#27500A" };
-      if (status === "in_progress")
-        return { label: "On going", color: "#f5e6c4", text: "#854F0B" };
-      return { label: "Not Available", color: "#f5c4c4", text: "#A32D2D" };
+      switch (status) {
+        case "open":
+          return { label: "Open", color: "#cae4c5", text: "#27500A" };
+        case "taken":
+          return { label: "Taken", color: "#f5e6c4", text: "#854F0B" };
+        case "in_progress":
+          return { label: "Taken", color: "#f5e6c4", text: "#854F0B" };
+        case "completed":
+          return { label: "Completed", color: "#d1d1d1", text: "#555" };
+        default:
+          return { label: "Cancelled", color: "#f5c4c4", text: "#A32D2D" };
+      }
     } else {
       if (status === "open")
         return { label: "Available", color: "#cae4c5", text: "#27500A" };
       return { label: "Acquired", color: "#d1d1d1", text: "#555" };
     }
   };
+
+  const handleApply = async (job: any) => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const meResponse = await fetch(`${API_BASE}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const me = await meResponse.json();
+
+      const convResponse = await fetch(`${API_BASE}/conversations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          recipientId: job.postedBy?._id,
+          jobRef: job._id,
+        }),
+      });
+      const conversation = await convResponse.json();
+
+      await fetch(`${API_BASE}/conversations/${conversation._id}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          type: "application",
+          content: "",
+          applicationData: {
+            skills: me.skills,
+            jobsDone: me.jobsDone,
+            rating: me.workerRating,
+            jobCompletion: me.jobCompletion,
+            availability: me.availability,
+            jobDescription: job.description,
+            jobSkills: job.skills,
+            jobPay: job.pay,
+            jobLocation: job.location,
+            workerLocation: me.location,
+          },
+        }),
+      });
+
+      router.push(`/chat?conversationId=${conversation._id}`);
+    } catch (err) {
+      alert("Failed to send application");
+    }
+  };
+
   const renderPost = ({ item }: { item: any }) => {
     const isJob = item.postType === "job";
     const statusInfo = getStatusLabel(item.status || "open", isJob);
     const posterName = item.postedBy?.name;
     const posterId = item.postedBy?._id;
+    const isTaken = item.status === "taken" || item.status === "in_progress";
 
     return (
       <View style={cardStyles.jobCard}>
@@ -108,7 +169,7 @@ export default function HomeScreen() {
           <View style={cardStyles.cardPosterInfo}>
             <Text style={cardStyles.cardPosterName}>{posterName}</Text>
             <Text style={cardStyles.cardPosterMeta}>
-              <Ionicons name="location-outline"></Ionicons>
+              <Ionicons name="location-outline" size={10} color="#8b8b8b" />
               {item.location} · {getTimeAgo(item.createdAt)} ·{" "}
               {isJob ? "Hiring" : "Applying"}
             </Text>
@@ -133,7 +194,6 @@ export default function HomeScreen() {
             <Text style={cardStyles.cardDetailLabel}>Description</Text>
             <Text style={cardStyles.cardDetailValue}>{item.description}</Text>
           </View>
-
           <View style={cardStyles.cardSkillsRow}>
             <Text style={cardStyles.cardDetailLabel}>Skills</Text>
             <View style={cardStyles.cardSkillsWrapper}>
@@ -144,7 +204,6 @@ export default function HomeScreen() {
               ))}
             </View>
           </View>
-
           <View style={cardStyles.cardSkillsRow}>
             <Text style={cardStyles.cardDetailLabel}>When</Text>
             <View style={cardStyles.cardWhenWrapper}>
@@ -155,7 +214,6 @@ export default function HomeScreen() {
               ))}
             </View>
           </View>
-
           <View style={cardStyles.cardDetailRow}>
             <Text style={cardStyles.cardDetailLabel}>
               {isJob ? "Pay" : "Rate"}
@@ -164,7 +222,6 @@ export default function HomeScreen() {
               ₱{item.pay ?? "N/A"}
             </Text>
           </View>
-
           {item.notes ? (
             <View style={cardStyles.cardDetailRow}>
               <Text style={cardStyles.cardDetailLabel}>Notes</Text>
@@ -176,10 +233,22 @@ export default function HomeScreen() {
         {/* Buttons */}
         <View style={cardStyles.cardButtons}>
           <TouchableOpacity
+            disabled={isTaken}
             style={[cardStyles.cardBtn, cardStyles.cardBtnBorder]}
           >
-            <Ionicons name="chatbubble-outline" size={16} color="#859581" />
-            <Text style={cardStyles.cardBtnText}>Negotiate</Text>
+            <Ionicons
+              name="chatbubble-outline"
+              size={16}
+              color={isTaken ? "#aaa" : "#859581"}
+            />
+            <Text
+              style={[
+                cardStyles.cardBtnText,
+                { color: isTaken ? "#aaa" : "#859581" },
+              ]}
+            >
+              Negotiate
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[cardStyles.cardBtn, cardStyles.cardBtnBorder]}
@@ -187,9 +256,22 @@ export default function HomeScreen() {
             <Ionicons name="chatbox-outline" size={16} color="#859581" />
             <Text style={cardStyles.cardBtnText}>Comment</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={cardStyles.cardBtn}>
-            <Ionicons name="send-outline" size={16} color="#859581" />
-            <Text style={cardStyles.cardBtnText}>
+          <TouchableOpacity
+            disabled={isTaken}
+            style={cardStyles.cardBtn}
+            onPress={!isTaken ? () => handleApply(item) : undefined}
+          >
+            <Ionicons
+              name="send-outline"
+              size={16}
+              color={isTaken ? "#aaa" : "#859581"}
+            />
+            <Text
+              style={[
+                cardStyles.cardBtnText,
+                { color: isTaken ? "#aaa" : "#859581" },
+              ]}
+            >
               {isJob ? "Apply" : "Hire"}
             </Text>
           </TouchableOpacity>
@@ -226,12 +308,14 @@ export default function HomeScreen() {
               size={35}
               color="black"
             />
-            <Ionicons
-              style={[styles.headerChatBubble, styles.headerNav]}
-              name="chatbubble-ellipses-outline"
-              size={35}
-              color="black"
-            />
+            <TouchableOpacity onPress={() => router.push("/conversations")}>
+              <Ionicons
+                style={[styles.headerChatBubble, styles.headerNav]}
+                name="chatbubble-ellipses-outline"
+                size={35}
+                color="black"
+              />
+            </TouchableOpacity>
           </View>
         </View>
 

@@ -32,7 +32,7 @@ export default function Login() {
     const checkToken = async () => {
       const token = await AsyncStorage.getItem("token");
       if (token) {
-        router.replace("/homescreen"); //skip login if token exists
+        //router.replace("/homescreen"); //skip login if token exists
       }
     };
     checkToken();

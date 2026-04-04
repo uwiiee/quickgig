@@ -51,9 +51,9 @@ export default function JobResults() {
     switch (status) {
       case "open":
         return { bg: "#cae4c5", text: "#27500A" };
-      case "in_progress":
-        return { bg: "#f5e6c4", text: "#854F0B" };
       case "taken":
+        return { bg: "#f5e6c4", text: "#854F0B" };
+      case "in_progress":
         return { bg: "#f5e6c4", text: "#854F0B" };
       case "completed":
         return { bg: "#d1d1d1", text: "#555" };
@@ -64,8 +64,22 @@ export default function JobResults() {
     }
   };
 
-  const isDisabled = (status: string) =>
-    ["in_progress", "taken", "completed", "cancelled"].includes(status);
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "open":
+        return "Open";
+      case "taken":
+        return "Taken";
+      case "in_progress":
+        return "Taken";
+      case "completed":
+        return "Completed";
+      case "cancelled":
+        return "Cancelled";
+      default:
+        return "Open";
+    }
+  };
 
   const getTimeAgo = (createdAt: string) => {
     const diff = Date.now() - new Date(createdAt).getTime();
@@ -120,7 +134,7 @@ export default function JobResults() {
             {results.map((item, index) => {
               const status = item.status || "open";
               const statusColor = getStatusColor(status);
-              const disabled = isDisabled(status);
+              const isTaken = status === "taken" || status === "in_progress";
               const posterName = isJob ? item.postedBy?.name : item.name;
               const posterId = isJob ? item.postedBy?._id : item._id;
 
@@ -161,8 +175,7 @@ export default function JobResults() {
                           { color: statusColor.text },
                         ]}
                       >
-                        {status.charAt(0).toUpperCase() +
-                          status.slice(1).replace("_", " ")}
+                        {getStatusLabel(status)}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -177,7 +190,6 @@ export default function JobResults() {
                           : `Available for ${item.skills?.join(", ")}`}
                       </Text>
                     </View>
-
                     <View style={styles.cardSkillsRow}>
                       <Text style={styles.cardDetailLabel}>Skills</Text>
                       <View style={styles.cardSkillsWrapper}>
@@ -188,7 +200,6 @@ export default function JobResults() {
                         ))}
                       </View>
                     </View>
-
                     <View style={styles.cardSkillsRow}>
                       <Text style={styles.cardDetailLabel}>When</Text>
                       <View style={styles.cardWhenWrapper}>
@@ -201,7 +212,6 @@ export default function JobResults() {
                         ))}
                       </View>
                     </View>
-
                     {isJob && (
                       <View style={styles.cardDetailRow}>
                         <Text style={styles.cardDetailLabel}>Pay</Text>
@@ -210,7 +220,6 @@ export default function JobResults() {
                         </Text>
                       </View>
                     )}
-
                     {!isJob && (
                       <View style={styles.cardDetailRow}>
                         <Text style={styles.cardDetailLabel}>Jobs done</Text>
@@ -219,7 +228,6 @@ export default function JobResults() {
                         </Text>
                       </View>
                     )}
-
                     {isJob && item.notes ? (
                       <View style={styles.cardDetailRow}>
                         <Text style={styles.cardDetailLabel}>Notes</Text>
@@ -232,19 +240,22 @@ export default function JobResults() {
                   {status !== "completed" && status !== "cancelled" && (
                     <View style={styles.cardButtons}>
                       <TouchableOpacity
-                        disabled={disabled}
-                        style={[
-                          styles.cardBtn,
-                          styles.cardBtnBorder,
-                          { opacity: disabled ? 0.3 : 1 },
-                        ]}
+                        disabled={isTaken}
+                        style={[styles.cardBtn, styles.cardBtnBorder]}
                       >
                         <Ionicons
                           name="chatbubble-outline"
                           size={16}
-                          color="#859581"
+                          color={isTaken ? "#aaa" : "#859581"}
                         />
-                        <Text style={styles.cardBtnText}>Negotiate</Text>
+                        <Text
+                          style={[
+                            styles.cardBtnText,
+                            { color: isTaken ? "#aaa" : "#859581" },
+                          ]}
+                        >
+                          Negotiate
+                        </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.cardBtn, styles.cardBtnBorder]}
@@ -257,18 +268,20 @@ export default function JobResults() {
                         <Text style={styles.cardBtnText}>Comment</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        disabled={disabled}
-                        style={[
-                          styles.cardBtn,
-                          { opacity: disabled ? 0.3 : 1 },
-                        ]}
+                        disabled={isTaken}
+                        style={styles.cardBtn}
                       >
                         <Ionicons
                           name="send-outline"
                           size={16}
-                          color="#859581"
+                          color={isTaken ? "#aaa" : "#859581"}
                         />
-                        <Text style={styles.cardBtnText}>
+                        <Text
+                          style={[
+                            styles.cardBtnText,
+                            { color: isTaken ? "#aaa" : "#859581" },
+                          ]}
+                        >
                           {isJob ? "Apply" : "Hire"}
                         </Text>
                       </TouchableOpacity>

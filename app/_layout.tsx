@@ -1,7 +1,13 @@
+import {
+  DancingScript_700Bold,
+  useFonts,
+} from "@expo-google-fonts/dancing-script";
+import {
+  Poppins_400Regular,
+  Poppins_700Bold,
+} from "@expo-google-fonts/poppins";
 import { Stack } from "expo-router";
-import { useFonts, DancingScript_700Bold } from '@expo-google-fonts/dancing-script';
-import { View, Text } from 'react-native';
-import { Poppins_400Regular, Poppins_700Bold } from '@expo-google-fonts/poppins';
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -13,9 +19,8 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <>
+    <KeyboardProvider>
       <Stack />
-    </>
+    </KeyboardProvider>
   );
 }
-
