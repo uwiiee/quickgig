@@ -79,23 +79,26 @@ export default function HomeScreen() {
     if (isJob) {
       switch (status) {
         case "open":
-          return { label: "Open", color: "#cae4c5", text: "#27500A" };
+          return { label: "Open", color: "#dbeafe", text: "#1d4ed8" };
         case "taken":
           return { label: "Taken", color: "#f5e6c4", text: "#854F0B" };
         case "in_progress":
           return { label: "Taken", color: "#f5e6c4", text: "#854F0B" };
         case "completed":
-          return { label: "Completed", color: "#d1d1d1", text: "#555" };
-        default:
+          return { label: "Completed", color: "#cae4c5", text: "#27500A" };
+        case "not_completed":
+          return { label: "Not Completed", color: "#f5c4c4", text: "#A32D2D" };
+        case "cancelled":
           return { label: "Cancelled", color: "#f5c4c4", text: "#A32D2D" };
+        default:
+          return { label: "Open", color: "#dbeafe", text: "#1d4ed8" };
       }
     } else {
       if (status === "open")
-        return { label: "Available", color: "#cae4c5", text: "#27500A" };
+        return { label: "Available", color: "#dbeafe", text: "#1d4ed8" };
       return { label: "Acquired", color: "#d1d1d1", text: "#555" };
     }
   };
-
   const handleApply = async (job: any) => {
     try {
       const token = await AsyncStorage.getItem("token");
@@ -152,7 +155,11 @@ export default function HomeScreen() {
     const statusInfo = getStatusLabel(item.status || "open", isJob);
     const posterName = item.postedBy?.name;
     const posterId = item.postedBy?._id;
-    const isTaken = item.status === "taken" || item.status === "in_progress";
+    const isTaken =
+      item.status === "taken" ||
+      item.status === "in_progress" ||
+      item.status === "completed" ||
+      item.status === "not_completed";
 
     return (
       <View style={cardStyles.jobCard}>

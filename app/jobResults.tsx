@@ -50,17 +50,19 @@ export default function JobResults() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "open":
-        return { bg: "#cae4c5", text: "#27500A" };
+        return { bg: "#dbeafe", text: "#1d4ed8" };
       case "taken":
         return { bg: "#f5e6c4", text: "#854F0B" };
       case "in_progress":
         return { bg: "#f5e6c4", text: "#854F0B" };
       case "completed":
-        return { bg: "#d1d1d1", text: "#555" };
+        return { bg: "#cae4c5", text: "#27500A" };
+      case "not_completed":
+        return { bg: "#f5c4c4", text: "#A32D2D" };
       case "cancelled":
         return { bg: "#f5c4c4", text: "#A32D2D" };
       default:
-        return { bg: "#cae4c5", text: "#27500A" };
+        return { bg: "#dbeafe", text: "#1d4ed8" };
     }
   };
 
@@ -74,6 +76,8 @@ export default function JobResults() {
         return "Taken";
       case "completed":
         return "Completed";
+      case "not_completed":
+        return "Not Completed";
       case "cancelled":
         return "Cancelled";
       default:
@@ -134,7 +138,11 @@ export default function JobResults() {
             {results.map((item, index) => {
               const status = item.status || "open";
               const statusColor = getStatusColor(status);
-              const isTaken = status === "taken" || status === "in_progress";
+              const isTaken =
+                status === "taken" ||
+                status === "in_progress" ||
+                status === "completed" ||
+                status === "not_completed";
               const posterName = isJob ? item.postedBy?.name : item.name;
               const posterId = isJob ? item.postedBy?._id : item._id;
 

@@ -134,7 +134,7 @@ export const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: "#acacac",
     alignSelf: "flex-start",
-    maxWidth: "85%",
+    width: "85%",
   },
 
   applicationTitle: {
@@ -190,11 +190,10 @@ export const styles = StyleSheet.create({
   },
 
   hireBtn: {
-    backgroundColor: "#859581",
+    backgroundColor: "rgb(133, 149, 129)",
     borderRadius: 8,
     padding: 10,
     alignItems: "center",
-    marginTop: 10,
   },
 
   hireBtnText: {
@@ -251,21 +250,38 @@ export const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 16,
     borderWidth: 0.5,
-    borderColor: "#859581",
+    borderColor: "rgb(133, 149, 129)",
   },
 
   systemMessageText: {
     fontSize: 12,
-    color: "#27500A",
+    color: "rgb(39, 80, 10)",
     fontWeight: "bold",
   },
 
   cancelledMessage: {
     backgroundColor: "#fde8e8",
-    borderColor: "#e74c3c",
+    borderColor: "rgb(231, 76, 60)",
   },
 
   cancelledMessageText: {
-    color: "#A32D2D",
+    color: "rgb(163, 45, 45)",
+  },
+
+  completeBtn: {
+    backgroundColor: "#2ecc71",
+  },
+
+  completedMessage: {
+    backgroundColor: "#e8f5e9",
+    borderColor: "#2ecc71",
+  },
+
+  completedMessageText: {
+    color: "#27500A",
+  },
+
+  notCompletedBtn: {
+    backgroundColor: "#e74c3c",
   },
 });

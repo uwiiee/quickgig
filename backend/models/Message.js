@@ -27,6 +27,8 @@ const messageSchema = new mongoose.Schema({
     clientName: { type: String, default: "" },
     workerName: { type: String, default: "" },
     cancelled: { type: Boolean, default: false },
+    completed: { type: Boolean, default: false },
+    notCompleted: { type: Boolean, default: false },
   },
   createdAt: { type: Date, default: Date.now },
 });

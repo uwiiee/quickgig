@@ -34,11 +34,9 @@ router.get("/", verifyToken, async (req, res) => {
 router.post("/", verifyToken, async (req, res) => {
   const { recipientId, jobRef, workerPostRef } = req.body;
   try {
-    // Check if conversation already exists between these two users for this job
+    // Check if conversation already exists between these two users
     let conversation = await Conversation.findOne({
       participants: { $all: [req.user.userId, recipientId] },
-      ...(jobRef && { jobRef }),
-      ...(workerPostRef && { workerPostRef }),
     });
 
     if (!conversation) {
@@ -47,6 +45,10 @@ router.post("/", verifyToken, async (req, res) => {
         jobRef: jobRef || null,
         workerPostRef: workerPostRef || null,
       });
+      await conversation.save();
+    } else {
+      // Update jobRef to the new job
+      conversation.jobRef = jobRef || conversation.jobRef;
       await conversation.save();
     }
 

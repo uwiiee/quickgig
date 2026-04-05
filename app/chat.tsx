@@ -27,6 +27,7 @@ export default function Chat() {
   const [jobRef, setJobRef] = useState<string>("");
   const [jobStatus, setJobStatus] = useState<string>("open");
   const [currentUserName, setCurrentUserName] = useState("");
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     loadCurrentUser();
@@ -79,6 +80,9 @@ export default function Chat() {
           );
           const jobData = await jobResponse.json();
           setJobStatus(jobData.status);
+          setIsClient(
+            jobData.postedBy?._id === me._id || jobData.postedBy === me._id,
+          );
         }
       }
 
@@ -134,7 +138,6 @@ export default function Chat() {
     try {
       const token = await AsyncStorage.getItem("token");
 
-      // Update job status to taken
       await fetch(`${API_BASE}/jobs/${jobRef}/status`, {
         method: "PUT",
         headers: {
@@ -143,10 +146,8 @@ export default function Chat() {
         },
         body: JSON.stringify({ status: "taken" }),
       });
-
       setJobStatus("taken");
 
-      // Send system message
       const response = await fetch(
         `${API_BASE}/conversations/${conversationId}/messages`,
         {
@@ -166,10 +167,41 @@ export default function Chat() {
         },
       );
       const message = await response.json();
-      socketRef.current?.emit("sendMessage", {
-        ...message,
-        conversationId,
-      });
+      socketRef.current?.emit("sendMessage", { ...message, conversationId });
+
+      // Resend application card
+      const msgResponse = await fetch(
+        `${API_BASE}/conversations/${conversationId}/messages`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      const allMessages = await msgResponse.json();
+      const lastApplication = [...allMessages]
+        .reverse()
+        .find((m: any) => m.type === "application");
+      if (lastApplication) {
+        const resendResponse = await fetch(
+          `${API_BASE}/conversations/${conversationId}/messages`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              type: "application",
+              content: "",
+              applicationData: lastApplication.applicationData,
+            }),
+          },
+        );
+        const resendMessage = await resendResponse.json();
+        socketRef.current?.emit("sendMessage", {
+          ...resendMessage,
+          conversationId,
+        });
+      }
     } catch (err) {
       alert("Failed to hire");
     }
@@ -179,7 +211,6 @@ export default function Chat() {
     try {
       const token = await AsyncStorage.getItem("token");
 
-      // Update job status back to open
       await fetch(`${API_BASE}/jobs/${jobRef}/status`, {
         method: "PUT",
         headers: {
@@ -188,10 +219,8 @@ export default function Chat() {
         },
         body: JSON.stringify({ status: "open" }),
       });
-
       setJobStatus("open");
 
-      // Send system message
       const response = await fetch(
         `${API_BASE}/conversations/${conversationId}/messages`,
         {
@@ -212,12 +241,124 @@ export default function Chat() {
         },
       );
       const message = await response.json();
-      socketRef.current?.emit("sendMessage", {
-        ...message,
-        conversationId,
-      });
+      socketRef.current?.emit("sendMessage", { ...message, conversationId });
+
+      // Resend application card
+      const msgResponse = await fetch(
+        `${API_BASE}/conversations/${conversationId}/messages`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      const allMessages = await msgResponse.json();
+      const lastApplication = [...allMessages]
+        .reverse()
+        .find((m: any) => m.type === "application");
+      if (lastApplication) {
+        const resendResponse = await fetch(
+          `${API_BASE}/conversations/${conversationId}/messages`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              type: "application",
+              content: "",
+              applicationData: lastApplication.applicationData,
+            }),
+          },
+        );
+        const resendMessage = await resendResponse.json();
+        socketRef.current?.emit("sendMessage", {
+          ...resendMessage,
+          conversationId,
+        });
+      }
     } catch (err) {
       alert("Failed to cancel");
+    }
+  };
+
+  const handleComplete = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+
+      await fetch(`${API_BASE}/jobs/${jobRef}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "completed" }),
+      });
+
+      setJobStatus("completed");
+
+      const response = await fetch(
+        `${API_BASE}/conversations/${conversationId}/messages`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            type: "hire_request",
+            content: "",
+            applicationData: {
+              clientName: currentUserName,
+              workerName: otherUser?.name,
+              completed: true,
+            },
+          }),
+        },
+      );
+      const message = await response.json();
+      socketRef.current?.emit("sendMessage", { ...message, conversationId });
+    } catch (err) {
+      alert("Failed to complete job");
+    }
+  };
+
+  const handleNotCompleted = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+
+      await fetch(`${API_BASE}/jobs/${jobRef}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "not_completed" }),
+      });
+      setJobStatus("not_completed");
+
+      const response = await fetch(
+        `${API_BASE}/conversations/${conversationId}/messages`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            type: "hire_request",
+            content: "",
+            applicationData: {
+              clientName: currentUserName,
+              workerName: otherUser?.name,
+              notCompleted: true,
+            },
+          }),
+        },
+      );
+      const message = await response.json();
+      socketRef.current?.emit("sendMessage", { ...message, conversationId });
+    } catch (err) {
+      alert("Failed to mark as not completed");
     }
   };
 
@@ -231,6 +372,10 @@ export default function Chat() {
         (item.sender?._id || item.sender);
 
     if (item.type === "application") {
+      const isLatestApplication =
+        messages.filter((m) => m.type === "application").slice(-1)[0]?._id ===
+        item._id;
+      if (!isLatestApplication) return null; // hide older cards
       return (
         <View
           style={{
@@ -317,18 +462,50 @@ export default function Chat() {
                 {item.applicationData?.jobCompletion || 0}%
               </Text>
             </View>
-            {!isMe && (
-              <TouchableOpacity
-                style={[
-                  styles.hireBtn,
-                  jobStatus === "taken" && styles.cancelBtn,
-                ]}
-                onPress={jobStatus === "taken" ? handleCancel : handleHire}
+            {isClient && isLatestApplication && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: 8,
+                  marginTop: 10,
+                  width: "100%",
+                }}
               >
-                <Text style={styles.hireBtnText}>
-                  {jobStatus === "taken" ? "Cancel" : "Hire"}
-                </Text>
-              </TouchableOpacity>
+                {jobStatus === "taken" ? (
+                  <>
+                    <TouchableOpacity
+                      style={[styles.hireBtn, styles.cancelBtn, { flex: 1 }]}
+                      onPress={handleCancel}
+                    >
+                      <Text style={styles.hireBtnText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.hireBtn,
+                        styles.notCompletedBtn,
+                        { flex: 1 },
+                      ]}
+                      onPress={handleNotCompleted}
+                    >
+                      <Text style={styles.hireBtnText}>Not Completed</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.hireBtn, styles.completeBtn, { flex: 1 }]}
+                      onPress={handleComplete}
+                    >
+                      <Text style={styles.hireBtnText}>Complete</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : jobStatus === "completed" ||
+                  jobStatus === "not_completed" ? null : (
+                  <TouchableOpacity
+                    style={[styles.hireBtn, { flex: 1 }]}
+                    onPress={handleHire}
+                  >
+                    <Text style={styles.hireBtnText}>Hire</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
           </View>
           {isLastInGroup && (
@@ -350,28 +527,55 @@ export default function Chat() {
 
     if (item.type === "hire_request") {
       const isCancelled = item.applicationData?.cancelled;
+      const isCompleted = item.applicationData?.completed;
+      const isNotCompleted = item.applicationData?.notCompleted;
       return (
         <View style={{ alignItems: "center", marginVertical: 10 }}>
           <View
             style={[
               styles.systemMessage,
               isCancelled && styles.cancelledMessage,
+              isCompleted && styles.completedMessage,
+              isNotCompleted && styles.cancelledMessage,
             ]}
           >
-            <Text
-              style={[
-                styles.systemMessageText,
-                isCancelled && styles.cancelledMessageText,
-              ]}
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
             >
-              {isCancelled
-                ? isMe
-                  ? `You cancelled the hire.`
-                  : `${item.applicationData?.clientName} cancelled the hire.`
-                : isMe
-                  ? `You hired ${item.applicationData?.workerName}!`
-                  : `You're hired by ${item.applicationData?.clientName}!`}
-            </Text>
+              <Ionicons
+                name={
+                  isCancelled || isNotCompleted
+                    ? "close-circle-outline"
+                    : "checkmark-circle-outline"
+                }
+                size={14}
+                color={isCancelled || isNotCompleted ? "#A32D2D" : "#27500A"}
+              />
+              <Text
+                style={[
+                  styles.systemMessageText,
+                  isCancelled && styles.cancelledMessageText,
+                  isCompleted && styles.completedMessageText,
+                  isNotCompleted && styles.cancelledMessageText,
+                ]}
+              >
+                {isNotCompleted
+                  ? isMe
+                    ? "You marked the job as Not Completed."
+                    : `${item.applicationData?.clientName} marked the job as Not Completed.`
+                  : isCompleted
+                    ? isMe
+                      ? "Transaction Completed!"
+                      : "Job Completed!"
+                    : isCancelled
+                      ? isMe
+                        ? "You cancelled the hire."
+                        : `${item.applicationData?.clientName} cancelled the hire.`
+                      : isMe
+                        ? `You hired ${item.applicationData?.workerName}!`
+                        : `You're hired by ${item.applicationData?.clientName}!`}
+              </Text>
+            </View>
           </View>
         </View>
       );
