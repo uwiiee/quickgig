@@ -56,6 +56,15 @@ router.post("/", verifyToken, async (req, res) => {
     });
     await job.save();
     await User.findByIdAndUpdate(req.user.userId, { $inc: { jobsPosted: 1 } });
+
+    // Save activity
+    const Activity = require("../models/Activity");
+    await Activity.create({
+      user: req.user.userId,
+      type: "posted_job",
+      jobRef: job._id,
+    });
+
     res.status(201).json({ message: "Job posted successfully!", job });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -281,6 +290,20 @@ router.get("/", async (req, res) => {
   }
 });
 
+// GET /api/jobs/:id — get a single job by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const job = await Job.findById(req.params.id).populate(
+      "postedBy",
+      "name location",
+    );
+    if (!job) return res.status(404).json({ error: "Job not found" });
+    res.json(job);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PUT /api/jobs/:id/status — update job status
 router.put("/:id/status", verifyToken, async (req, res) => {
   const { status } = req.body;
@@ -291,20 +314,61 @@ router.put("/:id/status", verifyToken, async (req, res) => {
       { new: true },
     );
     if (!job) return res.status(404).json({ error: "Job not found" });
-    res.json(job);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
-// GET /api/jobs/:id — get single job
-router.get("/:id", async (req, res) => {
-  try {
-    const job = await Job.findById(req.params.id).populate(
-      "postedBy",
-      "name location",
+    const Activity = require("../models/Activity");
+    const Conversation = require("../models/Conversation");
+
+    // Find the worker from conversation
+    const conv = await Conversation.findOne({ jobRef: job._id });
+    const workerId = conv?.participants.find(
+      (p) => p.toString() !== job.postedBy.toString(),
     );
-    if (!job) return res.status(404).json({ error: "Job not found" });
+
+    if (status === "taken" && workerId) {
+      await Activity.create({
+        user: workerId,
+        type: "got_hired",
+        jobRef: job._id,
+      });
+    }
+
+    if (status === "completed") {
+      if (workerId)
+        await Activity.create({
+          user: workerId,
+          type: "completed",
+          jobRef: job._id,
+        });
+      await Activity.create({
+        user: job.postedBy,
+        type: "completed",
+        jobRef: job._id,
+      });
+    }
+
+    if (status === "not_completed") {
+      if (workerId)
+        await Activity.create({
+          user: workerId,
+          type: "not_completed",
+          jobRef: job._id,
+        });
+      await Activity.create({
+        user: job.postedBy,
+        type: "not_completed",
+        jobRef: job._id,
+      });
+    }
+
+    if (status === "open" && workerId) {
+      // Cancel — remove got_hired activity from worker
+      await Activity.deleteOne({
+        user: workerId,
+        type: "got_hired",
+        jobRef: job._id,
+      });
+    }
+
     res.json(job);
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -120,29 +120,46 @@ export default function HomeScreen() {
       });
       const conversation = await convResponse.json();
 
-      await fetch(`${API_BASE}/conversations/${conversation._id}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      // Check if application message already exists
+      const msgResponse = await fetch(
+        `${API_BASE}/conversations/${conversation._id}/messages`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
         },
-        body: JSON.stringify({
-          type: "application",
-          content: "",
-          applicationData: {
-            skills: me.skills,
-            jobsDone: me.jobsDone,
-            rating: me.workerRating,
-            jobCompletion: me.jobCompletion,
-            availability: me.availability,
-            jobDescription: job.description,
-            jobSkills: job.skills,
-            jobPay: job.pay,
-            jobLocation: job.location,
-            workerLocation: me.location,
+      );
+      const existingMessages = await msgResponse.json();
+      const hasApplication = existingMessages.some(
+        (m: any) =>
+          m.type === "application" &&
+          m.applicationData?.jobDescription === job.description &&
+          m.applicationData?.jobPay === job.pay,
+      );
+
+      if (!hasApplication) {
+        await fetch(`${API_BASE}/conversations/${conversation._id}/messages`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
-        }),
-      });
+          body: JSON.stringify({
+            type: "application",
+            content: "",
+            applicationData: {
+              skills: me.skills,
+              jobsDone: me.jobsDone,
+              rating: me.workerRating,
+              jobCompletion: me.jobCompletion,
+              availability: me.availability,
+              jobDescription: job.description,
+              jobSkills: job.skills,
+              jobPay: job.pay,
+              jobLocation: job.location,
+              workerLocation: me.location,
+            },
+          }),
+        });
+      }
 
       router.push(`/chat?conversationId=${conversation._id}`);
     } catch (err) {

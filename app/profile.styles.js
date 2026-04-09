@@ -399,6 +399,7 @@ export const styles = StyleSheet.create({
   activityContainer: {
     borderWidth: 1.5,
     width: "100%",
+    height: 1000,
     backgroundColor: "rgb(245, 245, 245)",
     borderColor: "#acacac",
     padding: 10,
@@ -419,125 +420,5 @@ export const styles = StyleSheet.create({
   activityText: {
     fontSize: 12,
     color: "#333",
-  },
-
-  activityCard: {
-    backgroundColor: "#fff",
-    marginBottom: 10,
-    borderTopWidth: 2,
-    borderColor: "#979797",
-  },
-
-  activityPosterRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 12,
-  },
-
-  activityAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#859581",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  activityAvatarText: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-
-  activityPosterName: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: "#000",
-  },
-
-  activityPosterMeta: {
-    fontSize: 10,
-    color: "#8b8b8b",
-  },
-
-  activityStatusBadge: {
-    borderRadius: 20,
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-  },
-
-  activityStatusText: {
-    fontSize: 9,
-    fontWeight: "bold",
-  },
-
-  activityDetails: {
-    gap: 5,
-    borderTopWidth: 0.5,
-    borderTopColor: "#e0e0e0",
-    paddingTop: 8,
-    paddingHorizontal: 12,
-  },
-
-  activityDetailRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 4,
-  },
-
-  activityDetailLabel: {
-    fontSize: 11,
-    color: "#8b8b8b",
-    width: 80,
-  },
-
-  activityDetailValue: {
-    fontSize: 12,
-    color: "#333",
-    flex: 1,
-  },
-
-  activityDetailValueBold: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: "#859581",
-  },
-
-  activitySkillBadge: {
-    backgroundColor: "#cae4c5",
-    borderRadius: 20,
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-  },
-
-  activitySkillText: {
-    fontSize: 11,
-    color: "#27500A",
-  },
-
-  activityButtons: {
-    flexDirection: "row",
-    borderTopWidth: 0.5,
-    borderTopColor: "#e0e0e0",
-    marginTop: 8,
-  },
-
-  activityBtn: {
-    flex: 1,
-    padding: 10,
-    alignItems: "center",
-    gap: 3,
-  },
-
-  activityBtnBorder: {
-    borderRightWidth: 0.5,
-    borderRightColor: "#e0e0e0",
-  },
-
-  activityBtnText: {
-    fontSize: 10,
-    color: "#859581",
-    fontWeight: "bold",
   },
 });

@@ -6,7 +6,7 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { styles } from "../Styles/profile.styles";
 import { API_BASE } from "./config";
@@ -17,6 +17,7 @@ export default function ViewProfile() {
   const [reviews, setReviews] = useState([]);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [activities, setActivities] = useState<any[]>([]);
 
   useEffect(() => {
     fetchUser();
@@ -34,16 +35,27 @@ export default function ViewProfile() {
     setUser(data);
   };
 
-  useEffect(() => {
-    if (!user) return;
-    fetchReviews();
-  }, [user]);
-
   const fetchReviews = async () => {
     const response = await fetch(`${API_BASE}/auth/reviews/${user._id}`);
     const data = await response.json();
     setReviews(data);
   };
+
+  const fetchActivities = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/auth/activity/${id}`);
+      const data = await response.json();
+      setActivities(data);
+    } catch (err) {
+      console.log("Activities error:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    fetchReviews();
+    fetchActivities();
+  }, [user]);
 
   return (
     <>
@@ -272,11 +284,212 @@ export default function ViewProfile() {
           {/* Recent Activity */}
           <View style={styles.activityContainer}>
             <Text style={[styles.activityLabel, styles.labels]}>
-              RECENT ACTIVITY
+              ACTIVITY FEED
             </Text>
-            <View style={styles.activityWrapper}>
-              <Text style={styles.activityText}>No recent activity yet.</Text>
-            </View>
+            {activities.length === 0 ? (
+              <View style={styles.activityWrapper}>
+                <Text style={styles.activityText}>No activity yet.</Text>
+              </View>
+            ) : (
+              activities.map((activity, index) => {
+                const item = activity.post;
+                if (!item) return null;
+                const isJob = item.postType === "job";
+                const posterName = item.postedBy?.name;
+                const posterId = item.postedBy?._id;
+
+                const getStatusLabel = (status: string) => {
+                  switch (status) {
+                    case "open":
+                      return {
+                        label: "Open",
+                        color: "#dbeafe",
+                        text: "#1d4ed8",
+                      };
+                    case "taken":
+                      return {
+                        label: "Taken",
+                        color: "#f5e6c4",
+                        text: "#854F0B",
+                      };
+                    case "completed":
+                      return {
+                        label: "Completed",
+                        color: "#cae4c5",
+                        text: "#27500A",
+                      };
+                    case "not_completed":
+                      return {
+                        label: "Not Completed",
+                        color: "#f5c4c4",
+                        text: "#A32D2D",
+                      };
+                    case "expired":
+                      return {
+                        label: "Expired",
+                        color: "#f5c4c4",
+                        text: "#A32D2D",
+                      };
+                    default:
+                      return {
+                        label: "Open",
+                        color: "#dbeafe",
+                        text: "#1d4ed8",
+                      };
+                  }
+                };
+
+                const statusInfo = getStatusLabel(
+                  activity.type === "expired"
+                    ? "expired"
+                    : item.status || "open",
+                );
+
+                const getTimeAgo = (createdAt: string) => {
+                  const diff = Date.now() - new Date(createdAt).getTime();
+                  const mins = Math.floor(diff / 60000);
+                  const hours = Math.floor(diff / 3600000);
+                  const days = Math.floor(diff / 86400000);
+                  if (mins < 60) return `${mins}m ago`;
+                  if (hours < 24) return `${hours}h ago`;
+                  return `${days}d ago`;
+                };
+
+                const formatSchedule = (schedule: any) => {
+                  if (
+                    !schedule ||
+                    !Array.isArray(schedule) ||
+                    schedule.length === 0
+                  )
+                    return ["Flexible"];
+                  return schedule.map(
+                    (s: any) => `${s.date}, ${s.day} (${s.shift})`,
+                  );
+                };
+
+                return (
+                  <View key={index} style={styles.activityCard}>
+                    {/* Poster row */}
+                    <TouchableOpacity
+                      style={styles.activityPosterRow}
+                      onPress={() => router.push(`/viewProfile?id=${posterId}`)}
+                    >
+                      <View style={styles.activityAvatar}>
+                        <Text style={styles.activityAvatarText}>
+                          {posterName?.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.activityPosterName}>
+                          {posterName}
+                        </Text>
+                        <Text style={styles.activityPosterMeta}>
+                          {item.location} · {getTimeAgo(item.createdAt)} ·{" "}
+                          {isJob ? "Hiring" : "Applying"}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.activityStatusBadge,
+                          { backgroundColor: statusInfo.color },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.activityStatusText,
+                            { color: statusInfo.text },
+                          ]}
+                        >
+                          {statusInfo.label}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Details */}
+                    <View style={styles.activityDetails}>
+                      <View style={styles.activityDetailRow}>
+                        <Text style={styles.activityDetailLabel}>
+                          Description
+                        </Text>
+                        <Text style={styles.activityDetailValue}>
+                          {item.description}
+                        </Text>
+                      </View>
+                      <View style={styles.activityDetailRow}>
+                        <Text style={styles.activityDetailLabel}>Skills</Text>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            flexWrap: "wrap",
+                            gap: 4,
+                          }}
+                        >
+                          {item.skills?.map((s: string, i: number) => (
+                            <View key={i} style={styles.activitySkillBadge}>
+                              <Text style={styles.activitySkillText}>{s}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+                      <View style={styles.activityDetailRow}>
+                        <Text style={styles.activityDetailLabel}>When</Text>
+                        <View>
+                          {formatSchedule(item.schedule).map(
+                            (line: string, i: number) => (
+                              <Text key={i} style={styles.activityDetailValue}>
+                                {line}
+                              </Text>
+                            ),
+                          )}
+                        </View>
+                      </View>
+                      {isJob && (
+                        <View style={styles.activityDetailRow}>
+                          <Text style={styles.activityDetailLabel}>Pay</Text>
+                          <Text style={styles.activityDetailValueBold}>
+                            ₱{item.pay ?? "N/A"}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Buttons */}
+                    <View style={styles.activityButtons}>
+                      <TouchableOpacity
+                        style={[styles.activityBtn, styles.activityBtnBorder]}
+                      >
+                        <Ionicons
+                          name="chatbubble-outline"
+                          size={16}
+                          color="#859581"
+                        />
+                        <Text style={styles.activityBtnText}>Negotiate</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.activityBtn, styles.activityBtnBorder]}
+                      >
+                        <Ionicons
+                          name="chatbox-outline"
+                          size={16}
+                          color="#859581"
+                        />
+                        <Text style={styles.activityBtnText}>Comment</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.activityBtn}>
+                        <Ionicons
+                          name="send-outline"
+                          size={16}
+                          color="#859581"
+                        />
+                        <Text style={styles.activityBtnText}>
+                          {isJob ? "Apply" : "Hire"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })
+            )}
           </View>
         </ScrollView>
       </View>

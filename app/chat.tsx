@@ -78,11 +78,13 @@ export default function Chat() {
               headers: { Authorization: `Bearer ${token}` },
             },
           );
-          const jobData = await jobResponse.json();
-          setJobStatus(jobData.status);
-          setIsClient(
-            jobData.postedBy?._id === me._id || jobData.postedBy === me._id,
-          );
+          if (jobResponse.ok) {
+            const jobData = await jobResponse.json();
+            setJobStatus(jobData.status);
+            setIsClient(
+              jobData.postedBy?._id === me._id || jobData.postedBy === me._id,
+            );
+          }
         }
       }
 

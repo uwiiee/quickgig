@@ -45,6 +45,13 @@ router.post("/", verifyToken, async (req, res) => {
       postedBy: req.user.userId,
     });
     await post.save();
+    const Activity = require("../models/Activity");
+    await Activity.create({
+      user: req.user.userId,
+      type: "posted_worker",
+      workerPostRef: post._id,
+    });
+
     res.status(201).json({ message: "Worker post created!", post });
   } catch (err) {
     res.status(500).json({ error: err.message });

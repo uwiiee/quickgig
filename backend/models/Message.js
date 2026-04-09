@@ -14,6 +14,7 @@ const messageSchema = new mongoose.Schema({
   },
   content: { type: String, default: "" },
   applicationData: {
+    jobId: { type: mongoose.Schema.Types.ObjectId, ref: "Job", default: null },
     skills: [{ type: String }],
     jobsDone: { type: Number, default: 0 },
     rating: { type: Number, default: 0 },

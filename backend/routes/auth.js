@@ -198,4 +198,47 @@ router.get("/user/:id", async (req, res) => {
 
 console.log("JWT_SECRET:", process.env.JWT_SECRET);
 
+// GET /api/auth/activity/:userId
+router.get("/activity/:userId", async (req, res) => {
+  try {
+    const Activity = require("../models/Activity");
+    const Job = require("../models/Job");
+    const WorkerPost = require("../models/WorkerPost");
+
+    const activities = await Activity.find({ user: req.params.userId })
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    const populated = await Promise.all(
+      activities.map(async (act) => {
+        if (act.jobRef) {
+          const job = await Job.findById(act.jobRef).populate(
+            "postedBy",
+            "name location",
+          );
+          return {
+            ...act.toObject(),
+            post: job ? { ...job.toObject(), postType: "job" } : null,
+          };
+        }
+        if (act.workerPostRef) {
+          const wp = await WorkerPost.findById(act.workerPostRef).populate(
+            "postedBy",
+            "name location",
+          );
+          return {
+            ...act.toObject(),
+            post: wp ? { ...wp.toObject(), postType: "workerPost" } : null,
+          };
+        }
+        return { ...act.toObject(), post: null };
+      }),
+    );
+
+    res.json(populated.filter((a) => a.post !== null));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
