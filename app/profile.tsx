@@ -6,13 +6,13 @@ import * as Location from "expo-location";
 import { Stack, router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    Modal,
-    RefreshControl,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { styles } from "../Styles/profile.styles";
 
@@ -21,6 +21,13 @@ type User = {
   email: string;
   _id: string;
   skills: string[];
+  location: string;
+  jobsDone: number;
+  workerRating: number;
+  jobCompletion: number;
+  jobsPosted: number;
+  clientRating: number;
+  transactionCompletion: number;
   availability: {
     mon: string;
     tue: string;
@@ -50,6 +57,7 @@ export default function Profile() {
   const [location, setLocation] = useState("");
   const [showLocationInput, setShowLocationInput] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [activities, setActivities] = useState<any[]>([]);
 
   const schedules = [
     [monSchedule, setMonSchedule],
@@ -103,10 +111,16 @@ export default function Profile() {
       if (!user) return;
       const response = await fetch(`${API_BASE}/auth/reviews/${user?._id}`);
       const data = await response.json();
-      console.log("Reviews data:", data);
       setReviews(data);
     };
+    const fetchActivities = async () => {
+      if (!user) return;
+      const response = await fetch(`${API_BASE}/auth/activity/${user?._id}`);
+      const data = await response.json();
+      setActivities(data);
+    };
     fetchReviews();
+    fetchActivities();
   }, [user]);
 
   const addSkill = async () => {
@@ -360,15 +374,21 @@ export default function Profile() {
                 <Text style={styles.recordSectionLabel}>AS WORKER</Text>
                 <View style={styles.recordContainer}>
                   <View style={styles.records}>
-                    <Text style={styles.recordValue}>29</Text>
+                    <Text style={styles.recordValue}>
+                      {user?.jobsDone ?? 0}
+                    </Text>
                     <Text style={styles.recordLabel}>Jobs Done</Text>
                   </View>
                   <View style={styles.records}>
-                    <Text style={styles.recordValue}>4.7</Text>
+                    <Text style={styles.recordValue}>
+                      {user?.workerRating ?? 0}
+                    </Text>
                     <Text style={styles.recordLabel}>Rating</Text>
                   </View>
                   <View style={styles.records}>
-                    <Text style={styles.recordValue}>100%</Text>
+                    <Text style={styles.recordValue}>
+                      {user?.jobCompletion ?? 0}%
+                    </Text>
                     <Text style={styles.recordLabel}>Job Completion</Text>
                   </View>
                 </View>
@@ -382,15 +402,21 @@ export default function Profile() {
                 <Text style={styles.recordSectionLabel}>AS CLIENT</Text>
                 <View style={styles.recordContainer}>
                   <View style={styles.records}>
-                    <Text style={styles.recordValue}>0</Text>
+                    <Text style={styles.recordValue}>
+                      {user?.jobsPosted ?? 0}
+                    </Text>
                     <Text style={styles.recordLabel}>Jobs Posted</Text>
                   </View>
                   <View style={styles.records}>
-                    <Text style={styles.recordValue}>0</Text>
+                    <Text style={styles.recordValue}>
+                      {user?.clientRating ?? 0}
+                    </Text>
                     <Text style={styles.recordLabel}>Rating</Text>
                   </View>
                   <View style={styles.records}>
-                    <Text style={styles.recordValue}>0%</Text>
+                    <Text style={styles.recordValue}>
+                      {user?.transactionCompletion ?? 0}%
+                    </Text>
                     <Text style={[styles.recordLabel, { width: 110 }]}>
                       Transaction Completion
                     </Text>
@@ -596,17 +622,200 @@ export default function Profile() {
 
           <View style={styles.activityContainer}>
             <Text style={[styles.activityLabel, styles.labels]}>
-              RECENT ACTIVITY
+              ACTIVITY FEED
             </Text>
-            <View style={styles.activityWrapper}>
-              <Text style={styles.activityText}>
-                You completed the job "House Cleaning" for John Doe.
-              </Text>
-            </View>
+            {activities.length === 0 ? (
+              <View style={styles.activityWrapper}>
+                <Text style={styles.activityText}>No activity yet.</Text>
+              </View>
+            ) : (
+              activities.map((activity, index) => {
+                const item = activity.post;
+                if (!item) return null;
+                const isJob = item.postType === "job";
+                const posterName = item.postedBy?.name;
+                const posterId = item.postedBy?._id;
+
+                const getStatusLabel = (status: string) => {
+                  switch (status) {
+                    case "open":
+                      return {
+                        label: "Open",
+                        color: "#dbeafe",
+                        text: "#1d4ed8",
+                      };
+                    case "taken":
+                      return {
+                        label: "Taken",
+                        color: "#f5e6c4",
+                        text: "#854F0B",
+                      };
+                    case "completed":
+                      return {
+                        label: "Completed",
+                        color: "#cae4c5",
+                        text: "#27500A",
+                      };
+                    case "not_completed":
+                      return {
+                        label: "Not Completed",
+                        color: "#f5c4c4",
+                        text: "#A32D2D",
+                      };
+                    default:
+                      return {
+                        label: "Open",
+                        color: "#dbeafe",
+                        text: "#1d4ed8",
+                      };
+                  }
+                };
+
+                const statusInfo = getStatusLabel(item.status || "open");
+
+                const getTimeAgo = (createdAt: string) => {
+                  const diff = Date.now() - new Date(createdAt).getTime();
+                  const mins = Math.floor(diff / 60000);
+                  const hours = Math.floor(diff / 3600000);
+                  const days = Math.floor(diff / 86400000);
+                  if (mins < 60) return `${mins}m ago`;
+                  if (hours < 24) return `${hours}h ago`;
+                  return `${days}d ago`;
+                };
+
+                const formatSchedule = (schedule: any) => {
+                  if (
+                    !schedule ||
+                    !Array.isArray(schedule) ||
+                    schedule.length === 0
+                  )
+                    return ["Flexible"];
+                  return schedule.map(
+                    (s: any) => `${s.date}, ${s.day} (${s.shift})`,
+                  );
+                };
+
+                return (
+                  <View key={index} style={styles.activityCard}>
+                    <TouchableOpacity
+                      style={styles.activityPosterRow}
+                      onPress={() => router.push(`/viewProfile?id=${posterId}`)}
+                    >
+                      <View style={styles.activityAvatar}>
+                        <Text style={styles.activityAvatarText}>
+                          {posterName?.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.activityPosterName}>
+                          {posterName}
+                        </Text>
+                        <Text style={styles.activityPosterMeta}>
+                          {item.location} · {getTimeAgo(item.createdAt)} ·{" "}
+                          {isJob ? "Hiring" : "Applying"}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.activityStatusBadge,
+                          { backgroundColor: statusInfo.color },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.activityStatusText,
+                            { color: statusInfo.text },
+                          ]}
+                        >
+                          {statusInfo.label}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                    <View style={styles.activityDetails}>
+                      <View style={styles.activityDetailRow}>
+                        <Text style={styles.activityDetailLabel}>
+                          Description
+                        </Text>
+                        <Text style={styles.activityDetailValue}>
+                          {item.description}
+                        </Text>
+                      </View>
+                      <View style={styles.activityDetailRow}>
+                        <Text style={styles.activityDetailLabel}>Skills</Text>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            flexWrap: "wrap",
+                            gap: 4,
+                          }}
+                        >
+                          {item.skills?.map((s: string, i: number) => (
+                            <View key={i} style={styles.activitySkillBadge}>
+                              <Text style={styles.activitySkillText}>{s}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+                      <View style={styles.activityDetailRow}>
+                        <Text style={styles.activityDetailLabel}>When</Text>
+                        <View>
+                          {formatSchedule(item.schedule).map(
+                            (line: string, i: number) => (
+                              <Text key={i} style={styles.activityDetailValue}>
+                                {line}
+                              </Text>
+                            ),
+                          )}
+                        </View>
+                      </View>
+                      {isJob && (
+                        <View style={styles.activityDetailRow}>
+                          <Text style={styles.activityDetailLabel}>Pay</Text>
+                          <Text style={styles.activityDetailValueBold}>
+                            ₱{item.pay ?? "N/A"}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.activityButtons}>
+                      <TouchableOpacity
+                        style={[styles.activityBtn, styles.activityBtnBorder]}
+                      >
+                        <Ionicons
+                          name="chatbubble-outline"
+                          size={16}
+                          color="#859581"
+                        />
+                        <Text style={styles.activityBtnText}>Negotiate</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.activityBtn, styles.activityBtnBorder]}
+                      >
+                        <Ionicons
+                          name="chatbox-outline"
+                          size={16}
+                          color="#859581"
+                        />
+                        <Text style={styles.activityBtnText}>Comment</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.activityBtn}>
+                        <Ionicons
+                          name="send-outline"
+                          size={16}
+                          color="#859581"
+                        />
+                        <Text style={styles.activityBtnText}>
+                          {isJob ? "Apply" : "Hire"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })
+            )}
           </View>
         </ScrollView>
       </View>
     </>
   );
 }
-

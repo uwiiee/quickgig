@@ -333,30 +333,110 @@ router.put("/:id/status", verifyToken, async (req, res) => {
     }
 
     if (status === "completed") {
-      if (workerId)
-        await Activity.create({
+      if (workerId) {
+        // Update worker activity
+        await Activity.findOneAndUpdate(
+          { user: workerId, jobRef: job._id },
+          { type: "completed" },
+        );
+
+        // jobsDone = count of completed jobs
+        const completedWorkerJobs = await Activity.countDocuments({
           user: workerId,
           type: "completed",
-          jobRef: job._id,
         });
-      await Activity.create({
-        user: job.postedBy,
-        type: "completed",
-        jobRef: job._id,
+
+        // jobCompletion = completed / (completed + not_completed)
+        const notCompletedWorkerJobs = await Activity.countDocuments({
+          user: workerId,
+          type: "not_completed",
+        });
+        const totalFinished = completedWorkerJobs + notCompletedWorkerJobs;
+        const workerCompletion =
+          totalFinished > 0
+            ? Math.round((completedWorkerJobs / totalFinished) * 100)
+            : 100;
+
+        await User.findByIdAndUpdate(workerId, {
+          jobsDone: completedWorkerJobs,
+          jobCompletion: workerCompletion,
+        });
+      }
+
+      // Update client transactionCompletion
+      await Activity.findOneAndUpdate(
+        { user: job.postedBy, jobRef: job._id },
+        { type: "completed" },
+      );
+      const completedClientJobs = await Job.countDocuments({
+        postedBy: job.postedBy,
+        status: "completed",
+      });
+      const notCompletedClientJobs = await Job.countDocuments({
+        postedBy: job.postedBy,
+        status: "not_completed",
+      });
+      const totalClientFinished = completedClientJobs + notCompletedClientJobs;
+      const clientCompletion =
+        totalClientFinished > 0
+          ? Math.round((completedClientJobs / totalClientFinished) * 100)
+          : 100;
+      await User.findByIdAndUpdate(job.postedBy, {
+        transactionCompletion: clientCompletion,
       });
     }
 
     if (status === "not_completed") {
-      if (workerId)
-        await Activity.create({
+      if (workerId) {
+        // Update worker activity
+        await Activity.findOneAndUpdate(
+          { user: workerId, jobRef: job._id },
+          { type: "not_completed" },
+        );
+
+        // jobsDone = count of completed jobs only (not_completed doesn't count)
+        const completedWorkerJobs = await Activity.countDocuments({
+          user: workerId,
+          type: "completed",
+        });
+
+        // jobCompletion = completed / (completed + not_completed)
+        const notCompletedWorkerJobs = await Activity.countDocuments({
           user: workerId,
           type: "not_completed",
-          jobRef: job._id,
         });
-      await Activity.create({
-        user: job.postedBy,
-        type: "not_completed",
-        jobRef: job._id,
+        const totalFinished = completedWorkerJobs + notCompletedWorkerJobs;
+        const workerCompletion =
+          totalFinished > 0
+            ? Math.round((completedWorkerJobs / totalFinished) * 100)
+            : 100;
+
+        await User.findByIdAndUpdate(workerId, {
+          jobsDone: completedWorkerJobs,
+          jobCompletion: workerCompletion,
+        });
+      }
+
+      // Update client transactionCompletion
+      await Activity.findOneAndUpdate(
+        { user: job.postedBy, jobRef: job._id },
+        { type: "not_completed" },
+      );
+      const completedClientJobs = await Job.countDocuments({
+        postedBy: job.postedBy,
+        status: "completed",
+      });
+      const notCompletedClientJobs = await Job.countDocuments({
+        postedBy: job.postedBy,
+        status: "not_completed",
+      });
+      const totalClientFinished = completedClientJobs + notCompletedClientJobs;
+      const clientCompletion =
+        totalClientFinished > 0
+          ? Math.round((completedClientJobs / totalClientFinished) * 100)
+          : 100;
+      await User.findByIdAndUpdate(job.postedBy, {
+        transactionCompletion: clientCompletion,
       });
     }
 
