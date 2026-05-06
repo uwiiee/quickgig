@@ -3,20 +3,22 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    RefreshControl,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { styles } from "../Styles/search.styles";
 import { API_BASE } from "./config";
+import ConfirmModal from "./ConfirmModal";
 
 export default function WorkerResults() {
   const { query } = useLocalSearchParams();
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showHireModal, setShowHireModal] = useState(false);
 
   useEffect(() => {
     fetchResults();
@@ -205,7 +207,10 @@ export default function WorkerResults() {
                     />
                     <Text style={styles.cardBtnText}>Comment</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.cardBtn}>
+                  <TouchableOpacity
+                    style={styles.cardBtn}
+                    onPress={() => setShowHireModal(true)}
+                  >
                     <Ionicons
                       name="person-add-outline"
                       size={16}
@@ -220,6 +225,14 @@ export default function WorkerResults() {
           </ScrollView>
         )}
       </View>
+
+      <ConfirmModal
+        visible={showHireModal}
+        message="Are you sure you want to hire this worker?"
+        confirmText="Hire"
+        onConfirm={() => setShowHireModal(false)}
+        onCancel={() => setShowHireModal(false)}
+      />
     </>
   );
 }

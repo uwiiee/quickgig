@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { styles } from "../Styles/profile.styles";
 import { API_BASE } from "./config";
+import ConfirmModal from "./ConfirmModal";
 
 export default function ViewProfile() {
   const { id } = useLocalSearchParams();
@@ -18,7 +19,9 @@ export default function ViewProfile() {
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activities, setActivities] = useState<any[]>([]);
-
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [showHireModal, setShowHireModal] = useState(false);
+  const [pendingActivity, setPendingActivity] = useState<any>(null);
   useEffect(() => {
     fetchUser();
   }, []);
@@ -475,7 +478,15 @@ export default function ViewProfile() {
                         />
                         <Text style={styles.activityBtnText}>Comment</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.activityBtn}>
+                      <TouchableOpacity
+                        style={styles.activityBtn}
+                        onPress={() => {
+                          setPendingActivity(activity);
+                          isJob
+                            ? setShowApplyModal(true)
+                            : setShowHireModal(true);
+                        }}
+                      >
                         <Ionicons
                           name="send-outline"
                           size={16}
@@ -493,6 +504,21 @@ export default function ViewProfile() {
           </View>
         </ScrollView>
       </View>
+
+      <ConfirmModal
+        visible={showApplyModal}
+        message="Are you sure you want to apply for this job?"
+        confirmText="Apply"
+        onConfirm={() => setShowApplyModal(false)}
+        onCancel={() => setShowApplyModal(false)}
+      />
+      <ConfirmModal
+        visible={showHireModal}
+        message="Are you sure you want to hire this worker?"
+        confirmText="Hire"
+        onConfirm={() => setShowHireModal(false)}
+        onCancel={() => setShowHireModal(false)}
+      />
     </>
   );
 }

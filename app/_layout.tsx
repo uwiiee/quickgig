@@ -1,6 +1,5 @@
 import {
-  DancingScript_700Bold,
-  useFonts,
+  useFonts
 } from "@expo-google-fonts/dancing-script";
 import {
   Poppins_400Regular,
@@ -11,7 +10,6 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    DancingScript_700Bold,
     Poppins_400Regular,
     Poppins_700Bold,
   });

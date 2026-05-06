@@ -1,4 +1,4 @@
-const express = require("express");
+/*const express = require("express");
 const WorkerPost = require("../models/WorkerPost");
 const User = require("../models/User");
 const router = express.Router();
@@ -192,6 +192,133 @@ router.get("/", async (req, res) => {
     const posts = await WorkerPost.find({ status: "open" })
       .populate("postedBy", "name location jobsDone")
       .sort({ createdAt: -1 });
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+module.exports = router;*/
+
+const express = require("express");
+const WorkerPost = require("../models/WorkerPost");
+const User = require("../models/User");
+const router = express.Router();
+const jwt = require("jsonwebtoken");
+const {
+  buildWorkerPostFeatures,
+  clusterItems,
+  filterJobsBySkill,
+} = require("../utils/matching");
+
+const verifyToken = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "No token" });
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch {
+    res.status(401).json({ error: "Invalid token" });
+  }
+};
+
+// POST /api/workerposts
+router.post("/", verifyToken, async (req, res) => {
+  const { description, skills, location, schedule, pay, notes, coordinates } =
+    req.body;
+
+  try {
+    const post = new WorkerPost({
+      description,
+      skills,
+      location,
+      schedule,
+      pay,
+      notes,
+      coordinates,
+      postedBy: req.user.userId,
+    });
+
+    await post.save();
+
+    const Activity = require("../models/Activity");
+    await Activity.create({
+      user: req.user.userId,
+      type: "posted_worker",
+      workerPostRef: post._id,
+    });
+
+    res.status(201).json({ message: "Worker post created!", post });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/workerposts/suggested
+router.get("/suggested", verifyToken, async (req, res) => {
+  try {
+    const client = await User.findById(req.user.userId);
+    const posts = await WorkerPost.find({ status: "open" }).populate(
+      "postedBy",
+      "name location jobsDone",
+    );
+
+    const clustered = clusterItems(
+      posts,
+      (post) => buildWorkerPostFeatures(post, client),
+      3,
+    );
+
+    res.json(
+      clustered.map((entry) => ({
+        ...entry.item.toObject(),
+        cluster: entry.cluster,
+        score: entry.score,
+      })),
+    );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/workerposts/search?query=cooking
+router.get("/search", verifyToken, async (req, res) => {
+  const { query = "" } = req.query;
+
+  try {
+    const client = await User.findById(req.user.userId);
+    const posts = await WorkerPost.find({ status: "open" }).populate(
+      "postedBy",
+      "name location jobsDone",
+    );
+
+    const filteredPosts = filterJobsBySkill(posts, query);
+
+    const clustered = clusterItems(
+      filteredPosts,
+      (post) => buildWorkerPostFeatures(post, client, query),
+      3,
+    );
+
+    res.json(
+      clustered.map((entry) => ({
+        ...entry.item.toObject(),
+        cluster: entry.cluster,
+        score: entry.score,
+      })),
+    );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/workerposts
+router.get("/", async (req, res) => {
+  try {
+    const posts = await WorkerPost.find({ status: "open" })
+      .populate("postedBy", "name location jobsDone")
+      .sort({ createdAt: -1 });
+
     res.json(posts);
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { styles } from "../Styles/search.styles";
 import { API_BASE } from "./config";
+import ConfirmModal from "./ConfirmModal";
 
 export default function Search() {
   const [query, setQuery] = useState("");
@@ -28,6 +29,9 @@ export default function Search() {
   const [workerPostResults, setWorkerPostResults] = useState<any[]>([]);
   const [hasSearchedWorkerPosts, setHasSearchedWorkerPosts] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [pendingJob, setPendingJob] = useState<any>(null);
+  const [showHireModal, setShowHireModal] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -665,7 +669,12 @@ export default function Search() {
                           disabled={isTaken}
                           style={styles.cardBtn}
                           onPress={
-                            !isTaken ? () => handleApply(job) : undefined
+                            !isTaken
+                              ? () => {
+                                  setPendingJob(job);
+                                  setShowApplyModal(true);
+                                }
+                              : undefined
                           }
                         >
                           <Ionicons
@@ -840,6 +849,16 @@ export default function Search() {
           )}
         </ScrollView>
       </View>
+      <ConfirmModal
+        visible={showApplyModal}
+        message="Are you sure you want to apply for this job?"
+        confirmText="Apply"
+        onConfirm={() => {
+          setShowApplyModal(false);
+          if (pendingJob) handleApply(pendingJob);
+        }}
+        onCancel={() => setShowApplyModal(false)}
+      />
     </>
   );
 }

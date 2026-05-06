@@ -12,6 +12,7 @@ import {
 import { styles } from "../Styles/homescreen.styles";
 import { styles as cardStyles } from "../Styles/search.styles";
 import { API_BASE } from "./config";
+import ConfirmModal from "./ConfirmModal";
 
 export default function HomeScreen() {
   const [posts, setPosts] = useState<any[]>([]);
@@ -20,7 +21,9 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [showHireModal, setShowHireModal] = useState(false);
+  const [pendingPost, setPendingPost] = useState<any>(null);
   useEffect(() => {
     loadFeed(1);
   }, []);
@@ -281,21 +284,14 @@ export default function HomeScreen() {
             <Text style={cardStyles.cardBtnText}>Comment</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            disabled={isTaken}
             style={cardStyles.cardBtn}
-            onPress={!isTaken ? () => handleApply(item) : undefined}
+            onPress={() => {
+              setPendingPost(item);
+              isJob ? setShowApplyModal(true) : setShowHireModal(true);
+            }}
           >
-            <Ionicons
-              name="send-outline"
-              size={16}
-              color={isTaken ? "#aaa" : "#859581"}
-            />
-            <Text
-              style={[
-                cardStyles.cardBtnText,
-                { color: isTaken ? "#aaa" : "#859581" },
-              ]}
-            >
+            <Ionicons name="send-outline" size={16} color="#859581" />
+            <Text style={cardStyles.cardBtnText}>
               {isJob ? "Apply" : "Hire"}
             </Text>
           </TouchableOpacity>
@@ -405,6 +401,23 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      <ConfirmModal
+        visible={showApplyModal}
+        message="Are you sure you want to apply for this job?"
+        confirmText="Apply"
+        onConfirm={() => {
+          setShowApplyModal(false);
+          if (pendingPost) handleApply(pendingPost);
+        }}
+        onCancel={() => setShowApplyModal(false)}
+      />
+      <ConfirmModal
+        visible={showHireModal}
+        message="Are you sure you want to hire this worker?"
+        confirmText="Hire"
+        onConfirm={() => setShowHireModal(false)}
+        onCancel={() => setShowHireModal(false)}
+      />
     </>
   );
 }

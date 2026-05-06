@@ -11,12 +11,15 @@ import {
 } from "react-native";
 import { styles } from "../Styles/search.styles";
 import { API_BASE } from "./config";
+import ConfirmModal from "./ConfirmModal";
 
 export default function JobResults() {
   const { query, type } = useLocalSearchParams();
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [showHireModal, setShowHireModal] = useState(false);
 
   useEffect(() => {
     fetchResults();
@@ -278,6 +281,11 @@ export default function JobResults() {
                       <TouchableOpacity
                         disabled={isTaken}
                         style={styles.cardBtn}
+                        onPress={() =>
+                          isJob
+                            ? setShowApplyModal(true)
+                            : setShowHireModal(true)
+                        }
                       >
                         <Ionicons
                           name="send-outline"
@@ -302,6 +310,20 @@ export default function JobResults() {
           </ScrollView>
         )}
       </View>
+      <ConfirmModal
+        visible={showApplyModal}
+        message="Are you sure you want to apply for this job?"
+        confirmText="Apply"
+        onConfirm={() => setShowApplyModal(false)}
+        onCancel={() => setShowApplyModal(false)}
+      />
+      <ConfirmModal
+        visible={showHireModal}
+        message="Are you sure you want to hire this worker?"
+        confirmText="Hire"
+        onConfirm={() => setShowHireModal(false)}
+        onCancel={() => setShowHireModal(false)}
+      />
     </>
   );
 }
